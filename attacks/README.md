@@ -16,13 +16,28 @@ python server/app.py            # open http://127.0.0.1:5000, make the CLICK but
 # 2. install attacker deps
 pip install -r attacks/requirements.txt
 
-# 3a. naive attack — straight line + a fixed easing tween (the scorer should flag this)
+# 3a. naive — straight line + a fixed easing tween (the scorer flags this)
 python attacks/pyautogui_attack.py --mode naive
 
-# 3b. humanized attack — curved Bezier + tremor + irregular timing + overshoot/correct
+# 3b. bezier — curved path, but regular timing + integer pixels + no tremor.
+#     Defeats straightness/easing, yet still gets flagged by the other signals.
+python attacks/pyautogui_attack.py --mode bezier --bow 0.3
+
+# 3c. humanized — bezier + tremor + irregular timing + overshoot/correct
 #     + variable click dwell (your challenge: can it score as human?)
 python attacks/pyautogui_attack.py --mode humanized --rounds 5
 ```
+
+The three modes are a progression. Against the current scorer they land roughly:
+
+| Mode | Path | Timing | Tremor | Pixels | Typical verdict |
+|---|---|---|---|---|---|
+| `naive` | straight + easing | regular | none | integer | **bot** |
+| `bezier` | curved Bezier | regular | none | integer | **bot** (curve alone isn't enough) |
+| `humanized` | curved + correct | irregular | yes | integer | often **human** — beat it and submit it |
+
+`--bow` controls how much the bezier curve bends (fraction of the travel distance); `--steps` sets how
+many points the path is sampled into.
 
 You have `--delay` seconds (default 2) after launching to focus the demo page. Slam the mouse into a
 screen corner at any time to abort (pyautogui fail-safe).

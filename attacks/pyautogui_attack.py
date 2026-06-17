@@ -15,6 +15,10 @@ no client-side check can distinguish from a human hand. So whether you get
 flagged depends entirely on the *shape* of the movement:
 
   --mode naive      straight line + a fixed easing tween  (the scorer catches this)
+  --mode bezier     curved Bezier path, but otherwise machine-like: regular
+                    timing, integer pixels, no tremor, one smooth speed profile.
+                    Defeats the straightness + easing signals -- can it beat the
+                    timing / sub-pixel / tremor / sub-movement checks too?
   --mode humanized  curved Bezier + tremor + variable timing + corrective
                     sub-movement + variable click dwell    (try to beat the scorer)
 
@@ -79,6 +83,29 @@ def _bezier(p0, p1, p2, t):
             u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1])
 
 
+def attack_bezier(x: float, y: float, duration: float, steps: int, bow: float):
+    """Curved Bezier move, but machine-like otherwise.
+
+    Bends the path off the straight line (defeats straightness + easing fit) yet
+    keeps constant inter-step timing, no tremor, and a single smooth speed --
+    so it should still trip timing / sub-pixel / tremor / sub-movement signals.
+    """
+    start = pyautogui.position()
+    target = (x, y)
+    mx, my = (start[0] + target[0]) / 2, (start[1] + target[1]) / 2
+    nx, ny = -(target[1] - start[1]), (target[0] - start[0])
+    nlen = math.hypot(nx, ny) or 1.0
+    dist = math.hypot(target[0] - start[0], target[1] - start[1])
+    ctrl = (mx + nx / nlen * (bow * dist), my + ny / nlen * (bow * dist))
+
+    step_delay = max(duration / steps, 0.0)
+    for i in range(1, steps + 1):
+        bx, by = _bezier(start, ctrl, target, i / steps)
+        pyautogui.moveTo(bx, by, duration=0)
+        time.sleep(step_delay)            # constant dt -> regular, bot-like
+    pyautogui.click()
+
+
 def attack_humanized(x: float, y: float, seed: int | None = None):
     """Curved path + tremor + irregular timing + overshoot/correct + varied dwell."""
     rng = random.Random(seed)
@@ -124,10 +151,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--image", default=DEFAULT_IMAGE, help="template to locate (default: click.png)")
-    ap.add_argument("--mode", choices=["naive", "humanized"], default="naive")
+    ap.add_argument("--mode", choices=["naive", "bezier", "humanized"], default="naive")
     ap.add_argument("--confidence", type=float, default=0.8, help="match confidence (needs opencv)")
-    ap.add_argument("--duration", type=float, default=0.6, help="naive move duration (s)")
+    ap.add_argument("--duration", type=float, default=0.6, help="move duration (s), naive/bezier")
     ap.add_argument("--tween", default="easeInOutQuad", help="naive easing (pyautogui.<name>)")
+    ap.add_argument("--steps", type=int, default=40, help="bezier: number of path samples")
+    ap.add_argument("--bow", type=float, default=0.25, help="bezier: curve amount (frac of distance)")
     ap.add_argument("--retina-scale", type=float, default=1.0, help="set 2.0 on macOS Retina")
     ap.add_argument("--rounds", type=int, default=1, help="repeat the attack N times")
     ap.add_argument("--delay", type=float, default=2.0, help="seconds before starting (go focus the page)")
@@ -151,6 +180,8 @@ def main(argv=None):
         print(f"[round {r+1}] found at ({x:.0f}, {y:.0f}) -> {args.mode} attack")
         if args.mode == "naive":
             attack_naive(x, y, args.duration, args.tween)
+        elif args.mode == "bezier":
+            attack_bezier(x, y, args.duration, args.steps, args.bow)
         else:
             attack_humanized(x, y, seed=None)
         time.sleep(1.0)  # let the page score + relocate the target
