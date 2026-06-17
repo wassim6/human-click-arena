@@ -33,9 +33,14 @@ pip install -r requirements.txt
 python -m playwright install chromium      # playwright/puppeteer share this browser
 npm install                                # puppeteer-core + extra + stealth + ghost-cursor
 
-# 2) everything at once (boots the scorer in-process, writes results.json)
+# 2) the click matrix (boots the behavioral scorer in-process, writes results.json)
 python run_all.py
 #    -> selenium, seleniumbase, puppeteer, playwright  x  3 strategies  x  {plain, stealth}
+
+# 2b) the other two defense layers, against the REAL server (server/app.py):
+python run_defense.py
+#    -> rate-limit flood (bot gets throttled then blocked) + slider puzzle (bot solves it)
+#    writes defense_results.json
 
 # or a single engine/strategy against a server you started yourself:
 python harness_server.py &                 # http://127.0.0.1:5001
@@ -64,7 +69,10 @@ as a [bypass](../../bypasses/README.md).
 | `seleniumbase_attack.py` | SeleniumBase driver (`--stealth` = UC mode) |
 | `humanize.py` | curved + jittered + overshoot path generator (Python strategies) |
 | `emulate.py` | trajectory-equivalent fallback when no chromedriver is available (see note) |
-| `run_all.py` | boots the server and runs the whole matrix → `results.json` |
+| `run_all.py` | boots the behavioral scorer and runs the whole click matrix → `results.json` |
+| `ratelimit_attack.py` | floods the **real** `/score` (humanized trace + solved PoW) until the bot is throttled then blocked by `reputation.py` |
+| `puzzle_attack.py` | fetches `/challenge/puzzle` and **solves** it with a humanized drag → `/challenge/puzzle/verify` |
+| `run_defense.py` | boots the real `server/app.py` and runs both of the above → `defense_results.json` |
 
 > **Note on Selenium/SeleniumBase + arm64.** Selenium needs a matching
 > `chromedriver`, and **no official `linux-arm64` chromedriver is published**

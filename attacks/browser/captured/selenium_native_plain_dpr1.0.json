@@ -1,37 +1,38 @@
 {
  "events": [
   {
-   "t": 0,
    "type": "move",
-   "x": 842,
-   "y": 522
+   "x": 840,
+   "y": 520,
+   "t": 0
   },
   {
-   "t": 0.3,
    "type": "down",
-   "x": 842,
-   "y": 522
+   "x": 840,
+   "y": 520,
+   "t": 1.1
   },
   {
-   "t": 0.4,
-   "type": "up",
-   "x": 842,
-   "y": 522
-  },
-  {
-   "t": 2,
    "type": "up",
    "x": 840,
-   "y": 520
+   "y": 520,
+   "t": 52.8
+  },
+  {
+   "type": "up",
+   "x": 840,
+   "y": 520,
+   "t": 53.8
   }
  ],
+ "target": {
+  "x": 842,
+  "y": 522,
+  "r": 30
+ },
  "meta": {
   "dpr": 1,
-  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
- },
- "target": {
-  "r": 30,
-  "x": 842,
-  "y": 522
+  "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.0 Safari/537.36",
+  "webdriver": true
  }
 }

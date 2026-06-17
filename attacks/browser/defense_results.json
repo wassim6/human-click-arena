@@ -1,0 +1,121 @@
+{
+  "rate_limit": {
+    "engine": "rate-limit-flood",
+    "url": "http://127.0.0.1:5002",
+    "timeline": [
+      {
+        "i": 1,
+        "http": 200,
+        "decision": "allow",
+        "short": "1/3",
+        "long": "1/10",
+        "state": "ok",
+        "reason": "passed behavioral + proof-of-work + rate check"
+      },
+      {
+        "i": 2,
+        "http": 200,
+        "decision": "allow",
+        "short": "2/3",
+        "long": "2/10",
+        "state": "ok",
+        "reason": "passed behavioral + proof-of-work + rate check"
+      },
+      {
+        "i": 3,
+        "http": 200,
+        "decision": "allow",
+        "short": "3/3",
+        "long": "3/10",
+        "state": "ok",
+        "reason": "passed behavioral + proof-of-work + rate check"
+      },
+      {
+        "i": 4,
+        "http": 200,
+        "decision": "challenge",
+        "short": "4/3",
+        "long": "4/10",
+        "state": "throttled",
+        "reason": "rate limit: more than 3 attempts in 5 min \u2014 solve a harder proof-of-work"
+      },
+      {
+        "i": 5,
+        "http": 200,
+        "decision": "challenge",
+        "short": "5/3",
+        "long": "5/10",
+        "state": "throttled",
+        "reason": "rate limit: more than 3 attempts in 5 min \u2014 solve a harder proof-of-work"
+      },
+      {
+        "i": 6,
+        "http": 200,
+        "decision": "challenge",
+        "short": "6/3",
+        "long": "6/10",
+        "state": "throttled",
+        "reason": "rate limit: more than 3 attempts in 5 min \u2014 solve a harder proof-of-work"
+      },
+      {
+        "i": 7,
+        "http": 200,
+        "decision": "challenge",
+        "short": "7/3",
+        "long": "7/10",
+        "state": "throttled",
+        "reason": "rate limit: more than 3 attempts in 5 min \u2014 solve a harder proof-of-work"
+      },
+      {
+        "i": 8,
+        "http": 200,
+        "decision": "challenge",
+        "short": "8/3",
+        "long": "8/10",
+        "state": "throttled",
+        "reason": "rate limit: more than 3 attempts in 5 min \u2014 solve a harder proof-of-work"
+      },
+      {
+        "i": 9,
+        "http": 200,
+        "decision": "challenge",
+        "short": "9/3",
+        "long": "9/10",
+        "state": "throttled",
+        "reason": "rate limit: more than 3 attempts in 5 min \u2014 solve a harder proof-of-work"
+      },
+      {
+        "i": 10,
+        "http": 200,
+        "decision": "challenge",
+        "short": "10/3",
+        "long": "10/10",
+        "state": "throttled",
+        "reason": "rate limit: more than 3 attempts in 5 min \u2014 solve a harder proof-of-work"
+      },
+      {
+        "i": 11,
+        "http": 200,
+        "decision": "deny",
+        "short": "11/3",
+        "long": "11/10",
+        "state": "blocked",
+        "reason": "rate limit: more than 10 attempts in 30 min \u2014 blocked for 60 min; retry in 60 min"
+      }
+    ],
+    "tripped_challenge": true,
+    "tripped_block": true
+  },
+  "puzzle": {
+    "engine": "puzzle-solver",
+    "strategy": "humanized",
+    "target": 0.805,
+    "released": 0.8058,
+    "align_error": 0.0008,
+    "tol": 0.06,
+    "n_drag_moves": 36,
+    "solved": true,
+    "decision": "allow",
+    "reason": "passed the slide challenge"
+  }
+}

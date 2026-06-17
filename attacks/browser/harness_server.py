@@ -1,9 +1,14 @@
-"""Local harness server for the browser-automation attacks.
+"""Local harness server for the browser-automation *click* attacks.
 
 It reuses the project's real scorer (server/scorer.py) and the real
 client/collector.js, but serves a *controlled* page (fixed target, no random
 reshuffling) so an automation driver can move + click deterministically and
 read back the exact trace the collector captured.
+
+This server deliberately exposes ONLY the raw behavioral scorer (no proof-of-work
+/ rate-limit / puzzle), so the click drivers measure the pure behavioral score in
+isolation. The rate-limit + slider-puzzle defenses are exercised against the real
+server (server/app.py) by ratelimit_attack.py and puzzle_attack.py.
 
 Run standalone:
     python harness_server.py            # http://127.0.0.1:5001
