@@ -38,6 +38,10 @@
   .decision small { font-size: 12px; font-weight: 500; color: var(--muted); display: block; margin-top: 2px; }
   .verdict { font-size: 18px; font-weight: 700; margin: 2px 0 2px; }
   .verdict small { font-size: 12px; font-weight: 500; color: var(--muted); display: block; }
+  .challenge { margin-top: 12px; padding: 12px; border: 1px solid var(--warn); border-radius: 8px; background: rgba(210,153,34,.08); }
+  .ch-msg { font-size: 13px; color: var(--ink); margin-bottom: 8px; }
+  .challenge button { background: var(--warn); color: #1b1300; }
+  .ch-status { font-size: 12px; color: var(--muted); margin-left: 8px; }
   .layers { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 13px; }
   .layers .lyr { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
   .layers .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
@@ -85,6 +89,12 @@
     <div class="meter"><span id="scoreBar"></span></div>
     <div id="bars"></div>
     <div class="reason" id="reason"></div>
+
+    <div class="challenge" id="challenge" style="display:none">
+      <div class="ch-msg" id="chMsg"></div>
+      <button id="solveChallenge">Solve challenge</button>
+      <span class="ch-status" id="chStatus"></span>
+    </div>
 
     <div class="layers" id="layers"></div>
 
@@ -149,12 +159,27 @@
     lastResult = resp;
     const b = resp.behavioral || resp;          // tolerate raw behavioral too
 
-    // top-line decision
+    // top-line decision (with a clear glyph: ✓ allow / … challenge / ✕ deny)
     const dec = document.getElementById("decision");
     const dc = DCOLOR[resp.decision] || "var(--muted)";
-    dec.innerHTML = (resp.decision || "—").toUpperCase() +
+    const glyph = resp.decision === "allow" ? "✓ " : resp.decision === "deny" ? "✕ "
+                : resp.decision === "challenge" ? "… " : "";
+    dec.innerHTML = glyph + (resp.decision || "—").toUpperCase() +
       "<small>" + (resp.reason || "") + "</small>";
     dec.style.color = dc;
+
+    // show an actual challenge to solve when the decision is borderline
+    const ch = document.getElementById("challenge");
+    if (resp.decision === "challenge") {
+      ch.style.display = "block";
+      document.getElementById("chMsg").textContent =
+        (resp.reason || "Borderline result.") + " Solve a harder proof-of-work ("
+        + (resp.escalate_bits || 18) + " bits) to continue.";
+      document.getElementById("chStatus").textContent = "";
+      document.getElementById("solveChallenge").disabled = false;
+    } else {
+      ch.style.display = "none";
+    }
 
     // behavioral score + bars
     const pct = Math.round((b.score || 0) * 100);
@@ -240,6 +265,33 @@
   document.getElementById("simBot").addEventListener("click", async () => {
     lastTrace = botTrace();
     render(await submit(lastTrace));
+  });
+
+  // Resolve a "challenge": solve a harder proof-of-work, verify it server-side.
+  document.getElementById("solveChallenge").addEventListener("click", async () => {
+    const bits = (lastResult && lastResult.escalate_bits) || 18;
+    const btn = document.getElementById("solveChallenge");
+    const st = document.getElementById("chStatus");
+    btn.disabled = true;
+    st.textContent = "solving " + bits + "-bit proof-of-work…";
+    try {
+      const sol = await pow.obtain(bits);
+      const r = await (await fetch("/challenge/verify", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pow: sol }),
+      })).json();
+      if (r.decision === "allow" && lastResult) {
+        lastResult.decision = "allow";
+        lastResult.reason = r.reason + " (" + sol._ms + "ms)";
+        render(lastResult);                 // flips banner to ✓ ALLOW, hides this block
+      } else {
+        st.textContent = "rejected: " + (r.reason || "");
+        btn.disabled = false;
+      }
+    } catch (e) {
+      st.textContent = "error: " + e;
+      btn.disabled = false;
+    }
   });
 
   document.getElementById("resetRate").addEventListener("click", async () => {

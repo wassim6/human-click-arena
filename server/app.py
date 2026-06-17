@@ -31,6 +31,9 @@ from scorer import score
 
 CLIENT_DIR = os.path.join(os.path.dirname(__file__), "..", "client")
 REQUIRE_POW = os.environ.get("REQUIRE_POW", "1") not in ("0", "false", "False")
+# Difficulty (leading zero bits) of the escalated challenge shown on a
+# "challenge" decision. Higher = more CPU for the client to clear it.
+ESCALATED_BITS = int(os.environ.get("ESCALATED_BITS", "18"))
 
 app = Flask(__name__, static_folder=None)
 reputation = Reputation()
@@ -108,7 +111,23 @@ def score_endpoint():
         "pow": {"required": REQUIRE_POW, "provided": solution is not None,
                 "ok": pow_ok, "detail": pow_detail},
         "reputation": rep,
+        "escalate_bits": ESCALATED_BITS,   # difficulty to clear a "challenge"
     })
+
+
+@app.route("/challenge/verify", methods=["POST"])
+def challenge_verify():
+    """Resolve a 'challenge' decision: the client proves extra work by solving a
+    harder proof-of-work. Pass only if the solution is valid AND its difficulty
+    meets the escalated bar. (A real system might use a different second factor.)"""
+    body = request.get_json(force=True, silent=True) or {}
+    solution = body.get("pow")
+    ok, detail = powmod.verify(solution) if solution else (False, "no solution")
+    if ok and int(solution.get("difficulty", 0)) >= ESCALATED_BITS:
+        return jsonify({"ok": True, "decision": "allow",
+                        "reason": f"passed escalated proof-of-work ({ESCALATED_BITS} bits)"})
+    why = detail if not ok else f"need at least {ESCALATED_BITS} bits of work"
+    return jsonify({"ok": False, "decision": "deny", "reason": why})
 
 
 if __name__ == "__main__":

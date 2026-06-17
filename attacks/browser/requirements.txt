@@ -1,0 +1,12 @@
+# Python deps for the browser-automation attacks.
+# (The scorer itself only needs ../../server/requirements.txt: flask + numpy.)
+flask
+numpy
+playwright            # plus: python -m playwright install chromium
+playwright-stealth    # fingerprint patching for the --stealth playwright run
+selenium              # selenium_attack.py (needs a matching chromedriver)
+selenium-stealth      # fingerprint patching for the --stealth selenium run
+seleniumbase          # seleniumbase_attack.py (UC mode = its stealth)
+
+# Node deps (install with `npm install` in this folder) are listed in package.json:
+#   puppeteer-core, puppeteer-extra, puppeteer-extra-plugin-stealth, ghost-cursor

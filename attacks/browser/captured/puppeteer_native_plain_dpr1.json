@@ -10,7 +10,7 @@
    "type": "down",
    "x": 842,
    "y": 522,
-   "t": 0.2
+   "t": 0.1
   },
   {
    "type": "up",
@@ -20,9 +20,9 @@
   },
   {
    "type": "up",
-   "x": 840,
-   "y": 520,
-   "t": 13.3
+   "x": 842,
+   "y": 522,
+   "t": 0.9
   }
  ],
  "target": {
@@ -32,6 +32,6 @@
  },
  "meta": {
   "dpr": 1,
-  "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.0 Safari/537.36"
+  "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36"
  }
 }

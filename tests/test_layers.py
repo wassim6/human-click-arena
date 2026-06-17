@@ -89,6 +89,20 @@ def test_layered_endpoint_allow_deny_paths():
     assert r["decision"] == "deny" and r["behavioral"]["verdict"] == "bot"
 
 
+def test_challenge_escalation_endpoint():
+    client = A.app.test_client()
+    # solving the escalated proof-of-work clears the challenge
+    ch = json.loads(client.get(f"/pow/challenge?bits={A.ESCALATED_BITS}").data)
+    nonce = P.solve(ch["salt"], ch["difficulty"])
+    r = json.loads(client.post("/challenge/verify", json={"pow": dict(ch, nonce=str(nonce))}).data)
+    assert r["decision"] == "allow"
+    # a too-easy solution does not
+    ch2 = json.loads(client.get("/pow/challenge?bits=8").data)
+    n2 = P.solve(ch2["salt"], ch2["difficulty"])
+    r2 = json.loads(client.post("/challenge/verify", json={"pow": dict(ch2, nonce=str(n2))}).data)
+    assert r2["decision"] == "deny"
+
+
 def test_volume_gets_denied_even_when_behavior_says_human():
     A.reputation = Reputation(window_s=60, soft=8, hard=20)
     require = A.REQUIRE_POW
