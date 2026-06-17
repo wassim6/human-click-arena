@@ -18,19 +18,36 @@
     reset() {
       this.events = [];
       this._t0 = null;
+      this._lastNow = null;
       this.target = null;
+      // A gap longer than this between moves starts a fresh gesture, so the
+      // trace never accumulates minutes of unrelated wandering before a click.
+      this.idleResetMs = 1000;
       return this;
     }
 
     _stamp(type, x, y) {
       const now = performance.now();
+      if (type === "move" && this._lastNow !== null &&
+          now - this._lastNow > this.idleResetMs) {
+        this.events = [];          // long idle => new gesture
+        this._t0 = null;
+      }
       if (this._t0 === null) this._t0 = now;
+      this._lastNow = now;
       this.events.push({
         type: type,
         x: Math.round(x * 100) / 100,
         y: Math.round(y * 100) / 100,
         t: Math.round((now - this._t0) * 100) / 100,
       });
+    }
+
+    /** Public: explicitly record an event (used to capture the click release,
+     *  which can be missed when listeners are detached during event bubbling). */
+    mark(type, x, y) {
+      this._stamp(type, x, y);
+      return this;
     }
 
     /** Begin recording over `el`. `target` = {x, y, r} the user must click. */

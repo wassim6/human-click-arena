@@ -62,7 +62,13 @@ The scorer looks at, among others:
 | Velocity peaks (sub-movements) | several | one smooth peak |
 | Tremor / high-frequency jitter | present | ~0 |
 | Easing-function fit (R²) | low | **near 1.0** (matches a known tween) |
+| Pixel coordinates | sub-pixel on HiDPI/trackpad | exact integers (OS-injected) |
 | Click dwell (`down`→`up`) | varies | near-constant |
+
+Only the **final gesture** is scored: the run of motion ending in the click, cut at the last long idle
+gap. A real collector may buffer minutes of unrelated wandering before an automated click is appended,
+and scoring the whole buffer lets that human motion mask the bot — see the regression fixture
+`tests/fixtures/pyautogui_real_naive.json` (a real captured pyautogui click that this isolates and flags).
 
 Full write-up: [docs/how-it-works.md](docs/how-it-works.md).
 

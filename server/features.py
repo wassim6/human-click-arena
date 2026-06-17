@@ -27,6 +27,37 @@ def _moves(events: list[dict]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return np.array(xs), np.array(ys), np.array(ts)
 
 
+def final_gesture(events: list[dict], gap_ms: float = 800.0) -> list[dict]:
+    """Return only the last contiguous gesture leading up to the terminal click.
+
+    A real collector accumulates whatever the pointer did -- possibly minutes of
+    unrelated human wandering -- before an automated click is appended at the
+    end. Scoring the whole buffer lets that human motion mask the bot's click.
+    So we isolate the run of events that ends in the click, cutting at the last
+    long idle gap (default > 800 ms) and discarding everything before it.
+    """
+    if len(events) < 2:
+        return list(events)
+
+    end = len(events) - 1
+    for i in range(len(events) - 1, -1, -1):
+        if events[i].get("type") == "down":
+            end = i
+            break
+
+    last = end
+    if end + 1 < len(events) and events[end + 1].get("type") == "up":
+        last = end + 1
+
+    start = 0
+    for i in range(end, 0, -1):
+        if float(events[i]["t"]) - float(events[i - 1]["t"]) > gap_ms:
+            start = i
+            break
+
+    return events[start:last + 1]
+
+
 def _click_dwell_ms(events: list[dict]) -> float | None:
     t_down = t_up = None
     for e in events:
@@ -62,8 +93,16 @@ def extract(trace: dict[str, Any]) -> dict[str, Any]:
             easing_r2=1.0 if n == 0 else 0.0,
             total_time_ms=0.0,
             path_length_px=0.0,
+            int_coord_ratio=1.0,
         )
         return f
+
+    # Fraction of samples landing on exact integer pixels. OS injectors like
+    # pyautogui move to whole pixels; real pointer events on HiDPI/trackpads
+    # report sub-pixel (fractional) coordinates. (Uninformative on plain 1x
+    # displays where humans also hit integers -- so weighted modestly below.)
+    int_xy = (np.abs(x - np.round(x)) < 1e-6) & (np.abs(y - np.round(y)) < 1e-6)
+    int_coord_ratio = float(np.mean(int_xy))
 
     # --- geometry ---------------------------------------------------------
     dx = np.diff(x)
@@ -124,6 +163,7 @@ def extract(trace: dict[str, Any]) -> dict[str, Any]:
         easing_r2=round(float(easing_r2), 5),
         total_time_ms=round(total_time, 2),
         path_length_px=round(path_length, 2),
+        int_coord_ratio=round(int_coord_ratio, 4),
     )
     return f
 

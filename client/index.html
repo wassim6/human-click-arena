@@ -146,7 +146,8 @@
   }
 
   // Real human click: when the target is pressed, send the recorded trace.
-  target.addEventListener("pointerup", async () => {
+  target.addEventListener("pointerup", async (e) => {
+    collector.mark("up", e.clientX, e.clientY);  // ensure release is recorded
     collector.detach();
     lastTrace = collector.trace();
     try {

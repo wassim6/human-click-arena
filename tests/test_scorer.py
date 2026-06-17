@@ -44,6 +44,24 @@ def test_click_with_no_movement_is_bot():
     assert "no pointer movement" in result["reason"]
 
 
+def test_real_pyautogui_naive_trace_is_bot():
+    """Regression: a real browser-captured pyautogui naive click.
+
+    This trace originally scored 100/human because the collector had buffered
+    ~3 minutes of unrelated human wandering before the bot's straight dash was
+    appended. The scorer now isolates the final gesture (here: 14 events) and
+    must flag it. See bypasses/ — this is the arena's first regression fixture.
+    """
+    import json
+    path = os.path.join(HERE, "fixtures", "pyautogui_real_naive.json")
+    with open(path) as fh:
+        trace = json.load(fh)
+    result = score(trace)
+    assert result["verdict"] == "bot", (result["score"], result["subscores"])
+    assert result["score"] < 0.3, result["score"]
+    assert result["features"]["n_gesture_events"] < result["features"]["n_total_events"]
+
+
 def test_clear_separation_margin():
     """The worst human should still beat the best bot by a comfortable margin."""
     humans = [score(human.generate((90, 410), (600, 250), seed=s))["score"] for s in range(10)]

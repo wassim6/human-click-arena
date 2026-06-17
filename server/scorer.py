@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from features import extract
+from features import extract, final_gesture
 
 
 def _ramp(value: float, lo: float, hi: float) -> float:
@@ -32,11 +32,19 @@ WEIGHTS = {
     "timing": 1.2,         # bots emit events at very regular intervals
     "submovements": 1.0,   # humans correct with several velocity peaks
     "tremor": 1.0,         # humans have physiological jitter
+    "subpixel": 0.7,       # OS injectors land on integer pixels (modest weight)
 }
 
 
 def score(trace: dict[str, Any]) -> dict[str, Any]:
-    f = extract(trace)
+    # Only the gesture that ends in the click matters. A collector may have
+    # buffered minutes of unrelated human wandering before an automated click
+    # was appended; scoring the whole buffer lets that motion mask the bot.
+    all_events = trace.get("events", [])
+    gesture = final_gesture(all_events)
+    f = extract({"events": gesture, "target": trace.get("target")})
+    f["n_total_events"] = len(all_events)
+    f["n_gesture_events"] = len(gesture)
 
     # Hard gate: a click with no preceding movement is the loudest bot signal.
     if not f["has_movement"]:
@@ -59,6 +67,8 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     s_submov = _ramp(f["n_velocity_peaks"], 1.0, 3.0)
     # turning jitter: ~0 => perfectly smooth => bot.
     s_tremor = _ramp(f["mean_abs_turn_rad"], 0.02, 0.20)
+    # sub-pixel coordinates => human; all-integer => OS injector (pyautogui).
+    s_subpixel = _ramp(1.0 - f["int_coord_ratio"], 0.02, 0.30)
 
     subscores = {
         "straightness": round(s_straight, 4),
@@ -66,6 +76,7 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
         "timing": round(s_timing, 4),
         "submovements": round(s_submov, 4),
         "tremor": round(s_tremor, 4),
+        "subpixel": round(s_subpixel, 4),
     }
 
     total_w = sum(WEIGHTS.values())
@@ -98,5 +109,6 @@ def _explain(verdict: str, sub: dict[str, float], f: dict[str, Any]) -> str:
         "timing": "event intervals are unusually regular",
         "submovements": "single smooth velocity profile (no corrections)",
         "tremor": "no physiological jitter",
+        "subpixel": "every sample lands on an integer pixel (OS-injected)",
     }
     return "; ".join(hints[k] for k in weak)
