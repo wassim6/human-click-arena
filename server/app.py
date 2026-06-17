@@ -2,7 +2,11 @@
 
 Run:
     cd server && pip install -r requirements.txt && python app.py
-    open http://localhost:5000
+    open http://127.0.0.1:5000
+
+Port is configurable:  PORT=5050 python app.py
+(macOS note: port 5000 is used by the AirPlay Receiver; if 5000 misbehaves,
+disable it in System Settings > General > AirDrop & Handoff, or use PORT=5050.)
 """
 
 from __future__ import annotations
@@ -37,4 +41,10 @@ def score_endpoint():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "5000"))
+    print("\n  human-click-arena demo is running — open one of these:")
+    print(f"      http://127.0.0.1:{port}")
+    print(f"      http://localhost:{port}")
+    print("  (press Ctrl+C to stop)\n")
+    app.run(host=host, port=port, debug=True)

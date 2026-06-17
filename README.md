@@ -76,7 +76,7 @@ cd server
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python app.py
-# open http://localhost:5000  → move + click the target, watch the live score
+# then open http://127.0.0.1:5000  → move + click the target, watch the live score
 
 # 2. Generate a fake PyAutoGUI trace and score it from the CLI
 python ../tools/generate_pyautogui_trace.py --tween easeInOutQuad | python score_cli.py
@@ -88,6 +88,20 @@ pytest -q
 
 No GPU, no GUI, no external services required. The PyAutoGUI trace generator **replicates** PyAutoGUI's
 tweening math, so the test suite runs in CI without a desktop.
+
+### Troubleshooting `ERR_CONNECTION_REFUSED`
+
+`Connection refused` means **nothing is listening** on the port — the server isn't running. It is not
+a code problem.
+
+- Make sure `python app.py` is actually running in a terminal and stays running (you should see the
+  "demo is running" banner). Open the page in a *second* terminal/tab.
+- Prefer **`http://127.0.0.1:5000`**. If `localhost` is refused but `127.0.0.1` works, your `localhost`
+  is resolving to IPv6 (`::1`) while the dev server listens on IPv4 — just use `127.0.0.1`.
+- **macOS:** port 5000 is taken by the AirPlay Receiver. If you get odd behavior on 5000, run on
+  another port: `PORT=5050 python app.py` then open `http://127.0.0.1:5050`.
+- Don't open the `index.html` file directly (`file://…`) — it must be served by Flask so that `/score`
+  is reachable.
 
 ---
 
