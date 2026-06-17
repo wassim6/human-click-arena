@@ -52,6 +52,22 @@ def pow_challenge():
     return jsonify(powmod.make_challenge(bits))
 
 
+@app.route("/reset", methods=["POST"])
+def reset_endpoint():
+    """Demo helper: clear the rate-limit history and proof-of-work state so you
+    can keep testing after hitting the limit. Not something a real server exposes."""
+    reputation.reset()
+    powmod.reset()
+    return jsonify({
+        "ok": True,
+        "reputation": {
+            "attempts_in_window": 0, "window_s": reputation.window_s,
+            "soft": reputation.soft, "hard": reputation.hard,
+            "state": "ok", "key": "(reset)",
+        },
+    })
+
+
 def _decide(behavioral, pow_ok, pow_provided, rep):
     """Combine the layers into allow / challenge / deny."""
     if rep["state"] == "blocked":

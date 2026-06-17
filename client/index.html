@@ -91,6 +91,7 @@
     <div class="row">
       <button id="simBot" class="ghost">Simulate bot (PyAutoGUI-style)</button>
       <button id="copyTrace" class="ghost">Copy last trace</button>
+      <button id="resetRate" class="ghost">Reset rate limit</button>
     </div>
     <pre id="raw">// last trace + result will show here</pre>
   </aside>
@@ -239,6 +240,26 @@
   document.getElementById("simBot").addEventListener("click", async () => {
     lastTrace = botTrace();
     render(await submit(lastTrace));
+  });
+
+  document.getElementById("resetRate").addEventListener("click", async () => {
+    const b = document.getElementById("resetRate");
+    const old = b.textContent;
+    try {
+      const r = await (await fetch("/reset", { method: "POST" })).json();
+      if (lastResult) {
+        lastResult.reputation = r.reputation;     // back to 0/hard, ok
+        if (lastResult.decision === "deny" && (lastResult.reason || "").indexOf("rate") === 0) {
+          lastResult.decision = "allow";
+          lastResult.reason = "rate limit reset — try again";
+        }
+        render(lastResult);
+      }
+      b.textContent = "Rate limit reset ✓";
+    } catch (e) {
+      b.textContent = "reset failed";
+    }
+    setTimeout(() => (b.textContent = old), 1400);
   });
 
   document.getElementById("copyTrace").addEventListener("click", () => {

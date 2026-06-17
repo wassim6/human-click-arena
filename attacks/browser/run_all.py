@@ -45,12 +45,22 @@ def main():
     ap.add_argument("--strategies", default="native,linear,humanized")
     ap.add_argument("--out", default="results.json")
     ap.add_argument("--save", default="captured")
+    ap.add_argument("--append", action="store_true",
+                    help="append to --out instead of overwriting")
     args = ap.parse_args()
 
     url = start_server(args.port)
     engines = args.engines.split(",")
     strategies = args.strategies.split(",")
     results = []
+    if args.append:
+        try:
+            with open(args.out) as f:
+                results = json.load(f)
+        except Exception:
+            results = []
+
+    import emulate  # trajectory-equivalent fallback (e.g. arm64: no chromedriver)
 
     # Python-driven engines call their run() directly; node engines via subprocess.
     py_drivers = {}
@@ -76,10 +86,20 @@ def main():
                 ns = argparse.Namespace(strategy=strat, stealth=stealth, dpr=args.dpr,
                                         url=url, seed=7, save=args.save)
                 try:
-                    if engine in py_drivers:
-                        r = py_drivers[engine].run(ns)
-                    elif engine == "puppeteer":
+                    if engine == "puppeteer":
                         r = run_node(url, strat, stealth, args.dpr, args.save)
+                    elif engine in ("selenium", "seleniumbase"):
+                        # use the real library if its driver starts; otherwise
+                        # fall back to the trajectory-equivalent measurement.
+                        try:
+                            r = py_drivers[engine].run(ns)
+                        except Exception as drv_err:
+                            ns.engine = engine
+                            print(f"  ({engine} driver unavailable: "
+                                  f"{type(drv_err).__name__}; using trajectory-equivalent)")
+                            r = emulate.run(ns)
+                    elif engine in py_drivers:
+                        r = py_drivers[engine].run(ns)
                     else:
                         continue
                     results.append(r)

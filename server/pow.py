@@ -103,6 +103,12 @@ def verify(solution: dict) -> tuple[bool, str]:
     return True, "ok"
 
 
+def reset() -> None:
+    """Forget spent salts (demo convenience; replay protection starts fresh)."""
+    _spent.clear()
+    _spent_set.clear()
+
+
 def solve(salt: str, difficulty: int, max_iter: int = 1 << 26) -> int:
     """Reference solver (used by tests / CLI). The browser does this in JS."""
     nonce = 0

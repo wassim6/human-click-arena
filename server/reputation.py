@@ -34,6 +34,14 @@ class Reputation:
         raw = f"{ip}|{user_agent}|{dpr}".encode()
         return hashlib.sha256(raw).hexdigest()[:16]
 
+    def reset(self, key: str | None = None) -> None:
+        """Clear the rate-limit history. With no key, clears every client
+        (handy for the local demo); with a key, clears just that client."""
+        if key is None:
+            self._hits.clear()
+        else:
+            self._hits.pop(key, None)
+
     def assess(self, key: str) -> dict:
         now = time.time()
         dq = self._hits[key]
