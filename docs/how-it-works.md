@@ -94,8 +94,9 @@ Once you can't tell bot from human on one request, you stop trying and instead m
   cost a million times that. Challenges are HMAC-signed so the server verifies them statelessly, with
   single-use salts against replay. (Production: swap SHA-256 for memory-hard Argon2id/scrypt.)
 - **Rate limiting + reputation** (`server/reputation.py`) — a sliding window per client key. The same
-  client is judged over two windows: **> 3 in 5 min → challenge** (escalate to a harder
-  proof-of-work) and **> 10 in 30 min → block for 1 hour**. The behavioral verdict stays "human"
+  client is judged over two windows: **> 3 in 5 min → challenge** (the user must drag a piece into a
+  gap — a signed, single-use *slide-to-fit* puzzle, `server/puzzle.py`, verified for correct position
+  AND a real drag) and **> 10 in 30 min → block for 1 hour**. The behavioral verdict stays "human"
   throughout, while
   the behavioral verdict stays "human" the whole time. *That* is the signal: volume, not shape.
 

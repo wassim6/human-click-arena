@@ -26,6 +26,7 @@ import os
 from flask import Flask, jsonify, request, send_from_directory
 
 import pow as powmod
+import puzzle as puzzlemod
 from reputation import Reputation
 from scorer import score
 
@@ -125,11 +126,26 @@ def score_endpoint():
     })
 
 
+@app.route("/challenge/puzzle")
+def challenge_puzzle():
+    """Issue a visual slide-to-fit challenge (gap position is signed)."""
+    return jsonify(puzzlemod.make_challenge())
+
+
+@app.route("/challenge/puzzle/verify", methods=["POST"])
+def challenge_puzzle_verify():
+    """Resolve a 'challenge' by dragging the piece into the gap."""
+    body = request.get_json(force=True, silent=True) or {}
+    ok, detail = puzzlemod.verify(body)
+    if ok:
+        return jsonify({"ok": True, "decision": "allow", "reason": "passed the slide challenge"})
+    return jsonify({"ok": False, "decision": "deny", "reason": detail})
+
+
 @app.route("/challenge/verify", methods=["POST"])
 def challenge_verify():
-    """Resolve a 'challenge' decision: the client proves extra work by solving a
-    harder proof-of-work. Pass only if the solution is valid AND its difficulty
-    meets the escalated bar. (A real system might use a different second factor.)"""
+    """Alternative resolution: prove extra work via a harder proof-of-work.
+    (Kept for non-visual clients; the demo uses the slide puzzle above.)"""
     body = request.get_json(force=True, silent=True) or {}
     solution = body.get("pow")
     ok, detail = powmod.verify(solution) if solution else (False, "no solution")

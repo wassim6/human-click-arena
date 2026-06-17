@@ -159,7 +159,8 @@ human-click-arena/
 │   ├── easing.py           # PyAutoGUI tween functions + fit/matching
 │   ├── scorer.py           # behavioral + sub-pixel → score 0..1 + breakdown
 │   ├── pow.py              # stateless proof-of-work challenge / verify
-│   ├── reputation.py       # sliding-window rate limit + reputation
+│   ├── puzzle.py           # signed visual slide-to-fit challenge / verify
+│   ├── reputation.py       # two-tier rate limit + temporary ban
 │   ├── score_cli.py        # score a trace from stdin (for piping)
 │   └── requirements.txt
 ├── tools/

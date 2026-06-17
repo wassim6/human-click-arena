@@ -39,9 +39,15 @@
   .verdict { font-size: 18px; font-weight: 700; margin: 2px 0 2px; }
   .verdict small { font-size: 12px; font-weight: 500; color: var(--muted); display: block; }
   .challenge { margin-top: 12px; padding: 12px; border: 1px solid var(--warn); border-radius: 8px; background: rgba(210,153,34,.08); }
-  .ch-msg { font-size: 13px; color: var(--ink); margin-bottom: 8px; }
-  .challenge button { background: var(--warn); color: #1b1300; }
-  .ch-status { font-size: 12px; color: var(--muted); margin-left: 8px; }
+  .ch-msg { font-size: 13px; color: var(--ink); margin-bottom: 10px; }
+  .ch-status { font-size: 12px; color: var(--muted); display: block; margin-top: 8px; }
+  .ptrack { position: relative; height: 52px; background: #0b0f14; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; touch-action: none; }
+  .pgap { position: absolute; top: 6px; left: 0; width: 40px; height: 40px; border: 2px dashed var(--muted); border-radius: 8px; box-sizing: border-box; opacity: .8; }
+  .ppiece { position: absolute; top: 6px; left: 0; width: 40px; height: 40px; border-radius: 8px; box-sizing: border-box;
+            background: linear-gradient(135deg, #58a6ff, #1f6feb); border: 2px solid #79c0ff; cursor: grab; touch-action: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+  .ppiece:active { cursor: grabbing; }
+  .ptrack.solved .ppiece { background: linear-gradient(135deg, #3fb950, #2ea043); border-color: #56d364; }
   .layers { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 13px; }
   .layers .lyr { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
   .layers .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
@@ -92,8 +98,11 @@
 
     <div class="challenge" id="challenge" style="display:none">
       <div class="ch-msg" id="chMsg"></div>
-      <button id="solveChallenge">Solve challenge</button>
-      <span class="ch-status" id="chStatus"></span>
+      <div class="ptrack" id="ptrack">
+        <div class="pgap" id="pgap"></div>
+        <div class="ppiece" id="ppiece"></div>
+      </div>
+      <div class="ch-status" id="chStatus">drag the piece into the outline</div>
     </div>
 
     <div class="layers" id="layers"></div>
@@ -168,15 +177,13 @@
       "<small>" + (resp.reason || "") + "</small>";
     dec.style.color = dc;
 
-    // show an actual challenge to solve when the decision is borderline
+    // show an actual visual challenge to solve when the decision is borderline
     const ch = document.getElementById("challenge");
     if (resp.decision === "challenge") {
       ch.style.display = "block";
       document.getElementById("chMsg").textContent =
-        (resp.reason || "Borderline result.") + " Solve a harder proof-of-work ("
-        + (resp.escalate_bits || 18) + " bits) to continue.";
-      document.getElementById("chStatus").textContent = "";
-      document.getElementById("solveChallenge").disabled = false;
+        (resp.reason || "Borderline result.") + " Slide the piece into the dashed outline to continue.";
+      if (!puz.active) startPuzzle();
     } else {
       ch.style.display = "none";
     }
@@ -275,32 +282,72 @@
     render(await submit(lastTrace));
   });
 
-  // Resolve a "challenge": solve a harder proof-of-work, verify it server-side.
-  document.getElementById("solveChallenge").addEventListener("click", async () => {
-    const bits = (lastResult && lastResult.escalate_bits) || 18;
-    const btn = document.getElementById("solveChallenge");
-    const st = document.getElementById("chStatus");
-    btn.disabled = true;
-    st.textContent = "solving " + bits + "-bit proof-of-work…";
+  // ---- visual "slide to fit" challenge -------------------------------------
+  const ptrack = document.getElementById("ptrack");
+  const ppiece = document.getElementById("ppiece");
+  const pgap = document.getElementById("pgap");
+  const chStatus = document.getElementById("chStatus");
+  const puz = { challenge: null, active: false, dragging: false, frac: 0, trace: [], t0: 0 };
+
+  function trackSpan() { return Math.max(1, ptrack.clientWidth - ppiece.offsetWidth); }
+  function setPiece(frac) { ppiece.style.left = (frac * trackSpan()) + "px"; }
+  function setGap(target) { pgap.style.left = (target * trackSpan()) + "px"; }
+
+  async function startPuzzle() {
     try {
-      const sol = await pow.obtain(bits);
-      const r = await (await fetch("/challenge/verify", {
+      puz.challenge = await (await fetch("/challenge/puzzle")).json();
+    } catch (e) { chStatus.textContent = "could not load challenge"; return; }
+    puz.active = true; puz.dragging = false; puz.frac = 0; puz.trace = [];
+    ptrack.classList.remove("solved");
+    setGap(puz.challenge.target); setPiece(0);
+    chStatus.textContent = "drag the piece into the dashed outline";
+  }
+
+  function puzDown(e) {
+    if (!puz.active) return;
+    puz.dragging = true; puz.t0 = performance.now(); puz.trace = [];
+    try { ppiece.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
+  }
+  function puzMove(e) {
+    if (!puz.dragging) return;
+    const rect = ptrack.getBoundingClientRect();
+    let x = e.clientX - rect.left - ppiece.offsetWidth / 2;
+    x = Math.max(0, Math.min(trackSpan(), x));
+    puz.frac = x / trackSpan();
+    ppiece.style.left = x + "px";
+    puz.trace.push({ type: "move", x: e.clientX, y: e.clientY,
+                     t: Math.round((performance.now() - puz.t0) * 10) / 10 });
+  }
+  async function puzUp() {
+    if (!puz.dragging) return;
+    puz.dragging = false; puz.active = false;
+    const c = puz.challenge;
+    const body = {
+      salt: c.salt, target: c.target, tol: c.tol, ts: c.ts, sig: c.sig,
+      released: Math.round(puz.frac * 10000) / 10000, trace: { events: puz.trace },
+    };
+    chStatus.textContent = "checking…";
+    let r;
+    try {
+      r = await (await fetch("/challenge/puzzle/verify", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pow: sol }),
+        body: JSON.stringify(body),
       })).json();
-      if (r.decision === "allow" && lastResult) {
-        lastResult.decision = "allow";
-        lastResult.reason = r.reason + " (" + sol._ms + "ms)";
-        render(lastResult);                 // flips banner to ✓ ALLOW, hides this block
-      } else {
-        st.textContent = "rejected: " + (r.reason || "");
-        btn.disabled = false;
-      }
-    } catch (e) {
-      st.textContent = "error: " + e;
-      btn.disabled = false;
+    } catch (e) { chStatus.textContent = "network error"; puz.active = true; return; }
+    if (r.decision === "allow") {
+      ptrack.classList.add("solved");
+      chStatus.textContent = "verified ✓";
+      if (lastResult) { lastResult.decision = "allow"; lastResult.reason = r.reason; }
+      setTimeout(() => { if (lastResult) render(lastResult); }, 550);
+    } else {
+      chStatus.textContent = "✕ " + (r.reason || "try again");
+      setTimeout(startPuzzle, 900);
     }
-  });
+  }
+  ppiece.addEventListener("pointerdown", puzDown);
+  window.addEventListener("pointermove", puzMove);
+  window.addEventListener("pointerup", puzUp);
 
   document.getElementById("resetRate").addEventListener("click", async () => {
     const b = document.getElementById("resetRate");

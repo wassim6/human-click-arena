@@ -99,6 +99,27 @@ def test_layered_endpoint_allow_deny_paths():
     assert r["decision"] == "deny" and r["behavioral"]["verdict"] == "bot"
 
 
+def test_visual_puzzle_challenge():
+    import puzzle as Z
+    moves = {"events": [{"type": "move", "x": 80 + i * 6, "y": 40, "t": i * 28.0} for i in range(14)]}
+
+    ch = Z.make_challenge()
+    ok, _ = Z.verify(dict(ch, released=ch["target"], trace=moves))
+    assert ok                                                 # aligned + real drag
+
+    ok2, m2 = Z.verify(dict(ch, released=ch["target"], trace=moves))
+    assert not ok2 and "used" in m2                           # replay
+
+    ch2 = Z.make_challenge()
+    ok3, m3 = Z.verify(dict(ch2, released=max(0.0, ch2["target"] - 0.4), trace=moves))
+    assert not ok3 and "aligned" in m3                        # wrong position
+
+    ch3 = Z.make_challenge()
+    ok4, _ = Z.verify(dict(ch3, released=ch3["target"],
+                           trace={"events": [{"type": "move", "x": 1, "y": 1, "t": 0}]}))
+    assert not ok4                                            # teleport, no real drag
+
+
 def test_challenge_escalation_endpoint():
     client = A.app.test_client()
     # solving the escalated proof-of-work clears the challenge

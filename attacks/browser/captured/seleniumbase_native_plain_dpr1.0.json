@@ -1,37 +1,37 @@
 {
  "events": [
   {
+   "t": 0,
    "type": "move",
-   "x": 840,
-   "y": 520,
-   "t": 0
+   "x": 842,
+   "y": 522
   },
   {
+   "t": 0.1,
    "type": "down",
-   "x": 840,
-   "y": 520,
-   "t": 0.9
+   "x": 842,
+   "y": 522
   },
   {
+   "t": 0.2,
    "type": "up",
-   "x": 840,
-   "y": 520,
-   "t": 55.9
+   "x": 842,
+   "y": 522
   },
   {
+   "t": 5.9,
    "type": "up",
    "x": 840,
-   "y": 520,
-   "t": 57
+   "y": 520
   }
  ],
- "target": {
-  "x": 842,
-  "y": 522,
-  "r": 30
- },
  "meta": {
   "dpr": 1,
-  "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.0 Safari/537.36"
+  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36"
+ },
+ "target": {
+  "r": 30,
+  "x": 842,
+  "y": 522
  }
 }
