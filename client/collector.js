@@ -73,9 +73,19 @@
       return this;
     }
 
-    /** Snapshot of the trace as a plain object (safe to JSON.stringify). */
+    /** Snapshot of the trace as a plain object (safe to JSON.stringify).
+     *  `meta.dpr` lets the scorer use sub-pixel coordinates as a strong signal:
+     *  on a HiDPI display (dpr > 1) real pointers report fractional pixels,
+     *  while OS injectors (pyautogui) move to whole pixels only. */
     trace() {
-      return { events: this.events.slice(), target: this.target };
+      return {
+        events: this.events.slice(),
+        target: this.target,
+        meta: {
+          dpr: (typeof window !== "undefined" && window.devicePixelRatio) || 1,
+          ua: (typeof navigator !== "undefined" && navigator.userAgent) || "",
+        },
+      };
     }
 
     /** POST the trace to the scorer and resolve with the JSON result. */

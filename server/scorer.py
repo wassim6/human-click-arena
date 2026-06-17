@@ -41,10 +41,12 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     # buffered minutes of unrelated human wandering before an automated click
     # was appended; scoring the whole buffer lets that motion mask the bot.
     all_events = trace.get("events", [])
+    dpr = float((trace.get("meta") or {}).get("dpr", 1) or 1)
     gesture = final_gesture(all_events)
     f = extract({"events": gesture, "target": trace.get("target")})
     f["n_total_events"] = len(all_events)
     f["n_gesture_events"] = len(gesture)
+    f["device_pixel_ratio"] = dpr
 
     # Hard gate: a click with no preceding movement is the loudest bot signal.
     if not f["has_movement"]:
@@ -87,13 +89,28 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     if f["easing_r2"] >= 0.985 and f["directness"] >= 0.99:
         combined = min(combined, 0.15)
 
+    # Decisive HiDPI tell: on a display with devicePixelRatio > 1, real pointer
+    # events report sub-pixel coordinates. An all-integer gesture there is an OS
+    # injector (pyautogui/xdotool move to whole pixels and cannot do sub-pixel),
+    # no matter how human the *shape* of the motion is. This is what catches an
+    # otherwise-convincing "humanized" pyautogui run. Not applied on 1x displays,
+    # where humans also land on integers.
+    hidpi_integer = dpr > 1.0 and f["int_coord_ratio"] >= 0.98
+    if hidpi_integer:
+        combined = min(combined, 0.22)
+
     combined = round(float(combined), 4)
     verdict = "human" if combined >= 0.5 else ("suspicious" if combined >= 0.3 else "bot")
+
+    reason = _explain(verdict, subscores, f)
+    if hidpi_integer:
+        reason = (f"every sample is an integer pixel on a HiDPI display (dpr={dpr:g}) — "
+                  f"OS injector, not a real pointer; " + reason)
 
     return {
         "score": combined,
         "verdict": verdict,
-        "reason": _explain(verdict, subscores, f),
+        "reason": reason,
         "subscores": subscores,
         "features": f,
     }

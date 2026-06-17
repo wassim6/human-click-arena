@@ -30,14 +30,29 @@ python attacks/pyautogui_attack.py --mode humanized --rounds 5
 
 The three modes are a progression. Against the current scorer they land roughly:
 
-| Mode | Path | Timing | Tremor | Pixels | Typical verdict |
-|---|---|---|---|---|---|
-| `naive` | straight + easing | regular | none | integer | **bot** |
-| `bezier` | curved Bezier | regular | none | integer | **bot** (curve alone isn't enough) |
-| `humanized` | curved + correct | irregular | yes | integer | often **human** — beat it and submit it |
+| Mode | Path | Timing | Tremor | Pixels | Verdict on HiDPI | Verdict on 1x |
+|---|---|---|---|---|---|---|
+| `naive` | straight + easing | regular | none | integer | **bot** | **bot** |
+| `bezier` | curved Bezier | regular | none | integer | **bot** | **bot** |
+| `humanized` | curved + correct | irregular | yes | integer | **bot** | **human** |
 
-`--bow` controls how much the bezier curve bends (fraction of the travel distance); `--steps` sets how
-many points the path is sampled into.
+`--bow` controls how much the bezier curve bends (fraction of travel distance); `--steps` sets how many
+points the path is sampled into.
+
+### The integer-pixel ceiling
+
+`humanized` produces genuinely human-shaped motion — curved, with overshoot/correction, irregular
+timing and tremor. The behavioral signals alone score it as human. What still gives it away is that
+`pyautogui` moves to **whole pixels**, while on a **HiDPI display (`devicePixelRatio > 1`)** a real
+pointer reports **sub-pixel** coordinates. So an all-integer gesture is a near-certain OS injector
+there — that's the cap that flips `humanized` to bot (see `tests/fixtures/pyautogui_humanized.json`).
+
+This is conditional and honest: on a **1x display** humans also land on integers, so the signal is
+uninformative and `humanized` passes. To beat the detector for real you'd need to feed it **sub-pixel,
+genuinely human-recorded** motion (e.g. replay a recording, or inject fractional coordinates below the
+`pyautogui` layer). At that point the behavioral + sub-pixel layers can't separate it from a human —
+which is exactly where a production system leans on **server-side** signals (TLS/JA3, IP reputation).
+That's the real next bypass to submit.
 
 You have `--delay` seconds (default 2) after launching to focus the demo page. Slam the mouse into a
 screen corner at any time to abort (pyautogui fail-safe).

@@ -62,6 +62,34 @@ def test_real_pyautogui_naive_trace_is_bot():
     assert result["features"]["n_gesture_events"] < result["features"]["n_total_events"]
 
 
+def test_real_pyautogui_humanized_hidpi_is_flagged():
+    """A convincing 'humanized' pyautogui run (curved, overshoot, irregular
+    timing) still moves to whole pixels. On a HiDPI display real pointers report
+    sub-pixel coordinates, so an all-integer gesture is caught regardless of how
+    human its shape is."""
+    import json
+    path = os.path.join(HERE, "fixtures", "pyautogui_humanized.json")
+    with open(path) as fh:
+        trace = json.load(fh)
+    result = score(trace)
+    assert result["score"] < 0.5, (result["score"], result["subscores"])
+    assert result["features"]["int_coord_ratio"] >= 0.98
+    assert result["features"]["device_pixel_ratio"] > 1
+
+
+def test_integer_pixels_not_penalized_on_1x_display():
+    """Honest tradeoff: on a standard 1x display humans also land on integers,
+    so the integer-pixel signal must NOT, by itself, flip a human-shaped trace.
+    (This is exactly why the HiDPI cap is conditional on dpr > 1.)"""
+    import json
+    path = os.path.join(HERE, "fixtures", "pyautogui_humanized.json")
+    with open(path) as fh:
+        trace = json.load(fh)
+    trace["meta"]["dpr"] = 1
+    result = score(trace)
+    assert result["score"] > 0.5, result["score"]
+
+
 def test_clear_separation_margin():
     """The worst human should still beat the best bot by a comfortable margin."""
     humans = [score(human.generate((90, 410), (600, 250), seed=s))["score"] for s in range(10)]
