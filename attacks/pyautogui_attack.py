@@ -55,15 +55,22 @@ pyautogui.FAILSAFE = True
 # (otherwise it adds a constant delay after every call -> regular, bot-like dt).
 pyautogui.PAUSE = 0
 
+# Newer pyautogui/pyscreeze raise ImageNotFoundException instead of returning
+# None when a template isn't on screen. Treat that as "not found this round".
+_NOT_FOUND = tuple(e for e in [getattr(pyautogui, "ImageNotFoundException", None)] if e)
+
 
 def locate(image: str, confidence: float, retina_scale: float):
-    """Return (x, y) logical coordinates of the button center, or None."""
+    """Return (x, y) logical coordinates of the template center, or None."""
     try:
-        center = pyautogui.locateCenterOnScreen(image, confidence=confidence)
-    except TypeError:
-        # confidence= needs opencv-python; fall back to exact pixel match.
-        print("  (opencv not installed -> exact match; install opencv-python for confidence=)")
-        center = pyautogui.locateCenterOnScreen(image)
+        try:
+            center = pyautogui.locateCenterOnScreen(image, confidence=confidence)
+        except TypeError:
+            # confidence= needs opencv-python; fall back to exact pixel match.
+            print("  (opencv not installed -> exact match; install opencv-python for confidence=)")
+            center = pyautogui.locateCenterOnScreen(image)
+    except _NOT_FOUND:
+        return None
     if center is None:
         return None
     # On Retina/HiDPI, screenshots are in physical pixels but moveTo uses
