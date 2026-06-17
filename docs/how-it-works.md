@@ -94,7 +94,8 @@ Once you can't tell bot from human on one request, you stop trying and instead m
   cost a million times that. Challenges are HMAC-signed so the server verifies them statelessly, with
   single-use salts against replay. (Production: swap SHA-256 for memory-hard Argon2id/scrypt.)
 - **Rate limiting + reputation** (`server/reputation.py`) — a sliding window per client key. The same
-  client doing a human-looking click 30 times in a minute escalates `ok → throttled → blocked`, while
+  client doing a human-looking click a 4th time within 5 minutes escalates `ok → throttled → blocked`
+  (default: at most 3 per 5 min), while
   the behavioral verdict stays "human" the whole time. *That* is the signal: volume, not shape.
 
 `/score` combines all of it into one decision — `allow` / `challenge` / `deny`.

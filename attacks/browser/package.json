@@ -1,0 +1,11 @@
+{
+  "name": "hca-browser-attacks",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "puppeteer-core": "^24.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "ghost-cursor": "^1.4.0"
+  }
+}

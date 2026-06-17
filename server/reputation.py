@@ -19,10 +19,12 @@ from collections import defaultdict, deque
 
 
 class Reputation:
-    def __init__(self, window_s: float = 60.0, soft: int = 12, hard: int = 30):
+    def __init__(self, window_s: float = 300.0, soft: int = 2, hard: int = 3):
+        # `hard` is the max attempts ALLOWED per window; the (hard+1)-th is blocked.
+        # Default: at most 3 attempts per 5 minutes, throttle after 2.
         self.window_s = window_s
-        self.soft = soft          # attempts/window -> start throttling
-        self.hard = hard          # attempts/window -> block
+        self.soft = soft          # exceed -> start throttling (challenge)
+        self.hard = hard          # exceed -> block (deny)
         self._hits: dict[str, deque] = defaultdict(deque)
 
     @staticmethod
@@ -41,9 +43,9 @@ class Reputation:
             dq.popleft()
 
         rate = len(dq)
-        if rate >= self.hard:
+        if rate > self.hard:
             state = "blocked"
-        elif rate >= self.soft:
+        elif rate > self.soft:
             state = "throttled"
         else:
             state = "ok"
