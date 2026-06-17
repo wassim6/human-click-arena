@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local data / collected traces (keep the repo clean; fixtures are committed explicitly)
+data/
+*.local.json

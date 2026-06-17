@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>human-click-arena — can you fake a human click?</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #161b22; --line: #30363d; --ink: #e6edf3;
+    --muted: #8b949e; --accent: #2f81f7; --good: #3fb950; --bad: #f85149; --warn: #d29922;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg); color: var(--ink);
+  }
+  header { padding: 22px 24px 8px; }
+  h1 { margin: 0; font-size: 20px; }
+  header p { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+  main { display: grid; grid-template-columns: 1fr 360px; gap: 18px; padding: 18px 24px 40px; }
+  @media (max-width: 820px) { main { grid-template-columns: 1fr; } }
+  #arena {
+    position: relative; height: 460px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+    touch-action: none; cursor: crosshair;
+  }
+  #target {
+    position: absolute; width: 56px; height: 56px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #58a6ff, #1f6feb);
+    border: 2px solid #79c0ff; box-shadow: 0 0 0 6px rgba(47,129,247,.15);
+    display: grid; place-items: center; color: #fff; font-weight: 600; font-size: 12px;
+    transition: transform .08s ease; user-select: none;
+  }
+  #target:active { transform: scale(.92); }
+  #hint { position: absolute; left: 14px; bottom: 12px; color: var(--muted); font-size: 13px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .verdict { font-size: 28px; font-weight: 700; margin: 2px 0 2px; }
+  .verdict small { font-size: 13px; font-weight: 500; color: var(--muted); display: block; }
+  .meter { height: 10px; border-radius: 6px; background: #21262d; overflow: hidden; margin: 10px 0 4px; }
+  .meter > span { display: block; height: 100%; width: 0; transition: width .3s ease; }
+  .bar-row { display: grid; grid-template-columns: 120px 1fr 40px; align-items: center; gap: 8px; margin: 7px 0; font-size: 13px; }
+  .bar-row .track { height: 8px; background: #21262d; border-radius: 5px; overflow: hidden; }
+  .bar-row .track > span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s ease; }
+  .bar-row .pct { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .reason { color: var(--muted); font-size: 13px; margin-top: 8px; min-height: 2.5em; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  button {
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+    padding: 8px 12px; font: inherit; font-weight: 600; cursor: pointer;
+  }
+  button.ghost { background: #21262d; color: var(--ink); border: 1px solid var(--line); }
+  button:active { transform: translateY(1px); }
+  pre {
+    background: #0b0f14; border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px; font-size: 11px; max-height: 150px; overflow: auto; color: var(--muted);
+  }
+  code { color: #79c0ff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>human-click-arena</h1>
+  <p>Move to the target and click it. The scorer judges <em>how</em> you got there — not whether
+     <code>isTrusted</code> is true. Then try the <strong>Simulate bot</strong> button, or drive this
+     page with <code>pyautogui</code> / <code>selenium-base</code> and see if you can score as human.</p>
+</header>
+
+<main>
+  <div id="arena">
+    <div id="target">CLICK</div>
+    <div id="hint">Tip: a straight, instant move scores low. Curve, hesitate, correct — like a hand.</div>
+  </div>
+
+  <aside class="panel">
+    <div class="verdict" id="verdict">—<small>score appears after you click</small></div>
+    <div class="meter"><span id="scoreBar"></span></div>
+
+    <div id="bars"></div>
+    <div class="reason" id="reason"></div>
+
+    <div class="row">
+      <button id="simBot" class="ghost">Simulate bot (PyAutoGUI-style)</button>
+      <button id="copyTrace" class="ghost">Copy last trace</button>
+    </div>
+    <pre id="raw">// last trace + result will show here</pre>
+  </aside>
+</main>
+
+<script src="collector.js"></script>
+<script>
+(function () {
+  "use strict";
+  const arena = document.getElementById("arena");
+  const target = document.getElementById("target");
+  const collector = new TraceCollector();
+  let lastTrace = null, lastResult = null;
+
+  function placeTarget() {
+    const pad = 70;
+    const x = pad + Math.random() * (arena.clientWidth - pad * 2);
+    const y = pad + Math.random() * (arena.clientHeight - pad * 2);
+    target.style.left = (x - 28) + "px";
+    target.style.top = (y - 28) + "px";
+  }
+
+  function targetSpec() {
+    const r = target.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2 };
+  }
+
+  function startRound() {
+    placeTarget();
+    collector.attach(arena, targetSpec());
+  }
+
+  const COLORS = { straightness: "#3fb950", easing: "#f85149", timing: "#d29922",
+                   submovements: "#a371f7", tremor: "#58a6ff" };
+
+  function render(result) {
+    lastResult = result;
+    const pct = Math.round(result.score * 100);
+    const v = document.getElementById("verdict");
+    const color = result.verdict === "human" ? "var(--good)"
+                : result.verdict === "bot" ? "var(--bad)" : "var(--warn)";
+    v.innerHTML = result.verdict.toUpperCase() +
+      "<small>human-likeness " + pct + " / 100</small>";
+    v.style.color = color;
+    const sb = document.getElementById("scoreBar");
+    sb.style.width = pct + "%"; sb.style.background = color;
+
+    const bars = document.getElementById("bars");
+    bars.innerHTML = "";
+    const sub = result.subscores || {};
+    Object.keys(sub).forEach((k) => {
+      const p = Math.round(sub[k] * 100);
+      const row = document.createElement("div");
+      row.className = "bar-row";
+      row.innerHTML = '<span>' + k + '</span><div class="track"><span style="width:' +
+        p + '%;background:' + (COLORS[k] || "#2f81f7") + '"></span></div>' +
+        '<span class="pct">' + p + '</span>';
+      bars.appendChild(row);
+    });
+    document.getElementById("reason").textContent = result.reason || "";
+    document.getElementById("raw").textContent =
+      JSON.stringify({ result: result, trace: lastTrace }, null, 1);
+  }
+
+  // Real human click: when the target is pressed, send the recorded trace.
+  target.addEventListener("pointerup", async () => {
+    collector.detach();
+    lastTrace = collector.trace();
+    try {
+      const result = await collector.score("/score");
+      render(result);
+    } catch (e) {
+      document.getElementById("reason").textContent =
+        "Could not reach /score — is the Flask server running? (" + e + ")";
+    }
+    setTimeout(startRound, 400);
+  });
+
+  // ---- "Simulate bot": build a PyAutoGUI-style straight + eased trace in JS ----
+  const easings = {
+    linear: (n) => n,
+    easeInOutQuad: (n) => (n < 0.5 ? 2 * n * n : -0.5 * ((2 * n - 1) * (2 * n - 3) - 1)),
+    easeInOutCubic: (n) => (n < 0.5 ? 4 * n * n * n : 0.5 * Math.pow(2 * n - 2, 3) + 1),
+  };
+
+  function botTrace() {
+    const t = targetSpec();
+    const start = { x: 80, y: 400 };
+    const ease = easings.easeInOutQuad;
+    const N = 40, dur = 600;       // straight line, fixed easing, metronomic dt
+    const events = [];
+    for (let i = 0; i <= N; i++) {
+      const p = ease(i / N);
+      events.push({ type: "move",
+        x: start.x + (t.x - start.x) * p,
+        y: start.y + (t.y - start.y) * p,
+        t: (dur * i) / N });
+    }
+    events.push({ type: "down", x: t.x, y: t.y, t: dur + 5 });
+    events.push({ type: "up", x: t.x, y: t.y, t: dur + 65 });  // constant dwell
+    return { events: events, target: t };
+  }
+
+  document.getElementById("simBot").addEventListener("click", async () => {
+    lastTrace = botTrace();
+    const res = await fetch("/score", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lastTrace),
+    });
+    render(await res.json());
+  });
+
+  document.getElementById("copyTrace").addEventListener("click", () => {
+    if (!lastTrace) return;
+    navigator.clipboard.writeText(JSON.stringify(lastTrace, null, 2));
+    const b = document.getElementById("copyTrace");
+    const old = b.textContent; b.textContent = "Copied!";
+    setTimeout(() => (b.textContent = old), 1200);
+  });
+
+  window.addEventListener("resize", placeTarget);
+  startRound();
+})();
+</script>
+</body>
+</html>
