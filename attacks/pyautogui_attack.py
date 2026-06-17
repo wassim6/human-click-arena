@@ -147,6 +147,53 @@ def attack_humanized(x: float, y: float, seed: int | None = None):
     pyautogui.mouseUp()
 
 
+def _humanized_segment(start, target, rng):
+    """Move from start to target along a gentle curve with tremor + irregular
+    timing, while the mouse button is whatever it currently is (used for drags)."""
+    mx, my = (start[0] + target[0]) / 2, (start[1] + target[1]) / 2
+    nx, ny = -(target[1] - start[1]), (target[0] - start[0])
+    nlen = math.hypot(nx, ny) or 1.0
+    dist = math.hypot(target[0] - start[0], target[1] - start[1])
+    bow = rng.uniform(0.05, 0.15) * dist             # gentler curve for a slider
+    ctrl = (mx + nx / nlen * bow, my + ny / nlen * bow)
+    steps = rng.randint(28, 40)
+    for i in range(1, steps + 1):
+        p = i / steps
+        eased = p * p * (3 - 2 * p)
+        bx, by = _bezier(start, ctrl, target, eased)
+        bx += rng.gauss(0, 0.6)
+        by += rng.gauss(0, 0.6)
+        pyautogui.moveTo(bx, by, duration=0)
+        time.sleep(rng.uniform(0.006, 0.020))
+
+
+def humanized_drag(sx, sy, ex, ey, seed=None):
+    """Press the piece and drag it onto the gap with human-like motion."""
+    rng = random.Random(seed)
+    pyautogui.moveTo(sx + rng.uniform(-2, 2), sy + rng.uniform(-2, 2),
+                     duration=rng.uniform(0.18, 0.35), tween=pyautogui.easeOutQuad)
+    pyautogui.mouseDown()
+    time.sleep(rng.uniform(0.04, 0.10))
+    _humanized_segment(pyautogui.position(), (ex, ey), rng)
+    time.sleep(rng.uniform(0.03, 0.08))              # settle before releasing
+    pyautogui.mouseUp()
+
+
+def solve_puzzle(piece_img, gap_img, confidence, retina_scale, attempts=12):
+    """Locate the slide puzzle's piece and gap on screen and drag one onto the
+    other. Returns True if a puzzle was found and a drag performed."""
+    for _ in range(attempts):
+        piece = locate(piece_img, confidence, retina_scale)
+        gap = locate(gap_img, confidence, retina_scale)
+        if piece and gap:
+            print(f"  puzzle found: piece {tuple(round(v) for v in piece)} -> "
+                  f"gap {tuple(round(v) for v in gap)}; humanized drag")
+            humanized_drag(piece[0], piece[1], gap[0], gap[1])
+            return True
+        time.sleep(0.4)
+    return False
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -160,10 +207,20 @@ def main(argv=None):
     ap.add_argument("--retina-scale", type=float, default=1.0, help="set 2.0 on macOS Retina")
     ap.add_argument("--rounds", type=int, default=1, help="repeat the attack N times")
     ap.add_argument("--delay", type=float, default=2.0, help="seconds before starting (go focus the page)")
+    ap.add_argument("--solve-puzzle", action="store_true",
+                    help="after clicking, drag the slide puzzle if it appears")
+    ap.add_argument("--piece", default=os.path.join(HERE, "piece.png"),
+                    help="template of the draggable puzzle piece")
+    ap.add_argument("--gap", default=os.path.join(HERE, "gap.png"),
+                    help="template of the dashed gap outline")
     args = ap.parse_args(argv)
 
     if not os.path.exists(args.image):
         sys.exit(f"template not found: {args.image}")
+    if args.solve_puzzle:
+        for tmpl in (args.piece, args.gap):
+            if not os.path.exists(tmpl):
+                sys.exit(f"puzzle template not found: {tmpl}")
 
     print(f"Starting in {args.delay}s -- focus the demo page and reveal the CLICK button.")
     print("(slam the mouse into a screen corner to abort)")
@@ -185,6 +242,13 @@ def main(argv=None):
         else:
             attack_humanized(x, y, seed=None)
         time.sleep(1.0)  # let the page score + relocate the target
+
+        if args.solve_puzzle:
+            if solve_puzzle(args.piece, args.gap, args.confidence, args.retina_scale):
+                time.sleep(1.0)
+            else:
+                print("  no puzzle detected (allowed directly, or templates didn't match "
+                      "-- lower --confidence or re-screenshot piece.png / gap.png)")
 
     print("done. Check the verdict panel on the demo page.")
     return 0

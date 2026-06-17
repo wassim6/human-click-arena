@@ -1,0 +1,38 @@
+{
+ "events": [
+  {
+   "t": 0,
+   "type": "move",
+   "x": 842,
+   "y": 522
+  },
+  {
+   "t": 0.2,
+   "type": "down",
+   "x": 842,
+   "y": 522
+  },
+  {
+   "t": 0.2,
+   "type": "up",
+   "x": 842,
+   "y": 522
+  },
+  {
+   "t": 94.7,
+   "type": "up",
+   "x": 840,
+   "y": 520
+  }
+ ],
+ "meta": {
+  "dpr": 1,
+  "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+  "webdriver": false
+ },
+ "target": {
+  "r": 30,
+  "x": 842,
+  "y": 522
+ }
+}

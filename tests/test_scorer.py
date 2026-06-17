@@ -90,6 +90,32 @@ def test_integer_pixels_not_penalized_on_1x_display():
     assert result["score"] > 0.5, result["score"]
 
 
+def test_navigator_webdriver_true_is_caught_but_keeps_behavioral_read():
+    """The fingerprint layer: navigator.webdriver === true can only happen under
+    automation, so it flips even a perfectly human-shaped trace to bot — while
+    still exposing the behavioral score for reference."""
+    trace = human.generate((90, 410), (600, 250), seed=0)
+    trace.setdefault("meta", {})["webdriver"] = True
+    result = score(trace)
+    assert result["verdict"] == "bot"
+    assert result["score"] == 0.0
+    assert result["fingerprint"]["navigator_webdriver"] is True
+    assert result["features"]["behavioral_score"] >= 0.5   # behavioral read kept
+    assert "navigator.webdriver is true" in result["reason"]
+
+
+def test_navigator_webdriver_false_or_absent_does_not_penalize():
+    """Zero false positives: a real human AND a stealthed bot both report
+    webdriver=false, so the flag must never lower a human-shaped trace. Only
+    `true` is informative."""
+    base = human.generate((90, 410), (600, 250), seed=1)
+    assert score(base)["score"] >= 0.5                     # absent -> unaffected
+    base.setdefault("meta", {})["webdriver"] = False
+    result = score(base)
+    assert result["score"] >= 0.5                          # false -> unaffected
+    assert result["fingerprint"]["navigator_webdriver"] is False
+
+
 def test_clear_separation_margin():
     """The worst human should still beat the best bot by a comfortable margin."""
     humans = [score(human.generate((90, 410), (600, 250), seed=s))["score"] for s in range(10)]

@@ -68,6 +68,26 @@ scale-sensitive**, so if the button isn't found, recreate the template from *you
 
 Lower the match threshold with `--confidence 0.6` (requires `opencv-python`).
 
+### Solving the slide challenge
+
+When repeated clicks trigger a `challenge`, the page shows a slide-to-fit puzzle. Add `--solve-puzzle`
+and the attacker will, after each click, locate the piece and the gap on screen and humanized-drag one
+onto the other:
+
+```bash
+python attacks/pyautogui_attack.py --mode humanized --image attacks/click-my.png --solve-puzzle
+```
+
+It uses two templates, [`piece.png`](piece.png) (the blue draggable square) and [`gap.png`](gap.png)
+(the dashed outline), shipped as approximations of the demo's CSS. As with `click.png`, **image
+matching is scale-sensitive** — on a HiDPI/Retina screen, re-screenshot the piece and the gap from your
+own display and pass them with `--piece` / `--gap`, and/or lower `--confidence 0.6` (needs
+`opencv-python`).
+
+Honest note: this works because the gap is *visible* on screen — the bot just has to see it and drag
+there convincingly. The drag is verified server-side for a real motion (not a teleport), so the same
+humanized-motion arms race applies; it's not a magic bypass.
+
 ### macOS notes
 
 - **Retina/HiDPI:** screenshots are in physical pixels but `moveTo` uses logical points. If the cursor

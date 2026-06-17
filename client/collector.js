@@ -84,6 +84,10 @@
         meta: {
           dpr: (typeof window !== "undefined" && window.devicePixelRatio) || 1,
           ua: (typeof navigator !== "undefined" && navigator.userAgent) || "",
+          // Trivial automation tell: real browsers report false/undefined; a
+          // WebDriver-controlled browser reports true (unless a stealth plugin
+          // resets it). Only `true` is informative — false proves nothing.
+          webdriver: (typeof navigator !== "undefined" && navigator.webdriver === true),
         },
       };
     }

@@ -41,21 +41,32 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     # buffered minutes of unrelated human wandering before an automated click
     # was appended; scoring the whole buffer lets that motion mask the bot.
     all_events = trace.get("events", [])
-    dpr = float((trace.get("meta") or {}).get("dpr", 1) or 1)
+    meta = trace.get("meta") or {}
+    dpr = float(meta.get("dpr", 1) or 1)
+    # Fingerprint tell (not behavioral): the browser's own automation flag.
+    # `true` => WebDriver-controlled; `false`/None => human OR stealthed bot.
+    wd = meta.get("webdriver")
+    webdriver_flag = wd is True
     gesture = final_gesture(all_events)
     f = extract({"events": gesture, "target": trace.get("target")})
     f["n_total_events"] = len(all_events)
     f["n_gesture_events"] = len(gesture)
     f["device_pixel_ratio"] = dpr
+    f["navigator_webdriver"] = (bool(wd) if wd is not None else None)
+    fingerprint = {"navigator_webdriver": f["navigator_webdriver"]}
 
     # Hard gate: a click with no preceding movement is the loudest bot signal.
     if not f["has_movement"]:
+        reason = "no pointer movement before click"
+        if webdriver_flag:
+            reason = "navigator.webdriver is true (automation flag); " + reason
         return {
             "score": 0.0,
             "verdict": "bot",
-            "reason": "no pointer movement before click",
+            "reason": reason,
             "subscores": {},
             "features": f,
+            "fingerprint": fingerprint,
         }
 
     # --- map each feature to a human-likeness sub-score in [0, 1] ----------
@@ -107,12 +118,28 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
         reason = (f"every sample is an integer pixel on a HiDPI display (dpr={dpr:g}) — "
                   f"OS injector, not a real pointer; " + reason)
 
+    # Keep the behavioral verdict for reference, then apply the fingerprint layer.
+    f["behavioral_score"] = combined
+
+    # Fingerprint gate: navigator.webdriver === true can only happen under
+    # automation, so it's a zero-false-positive bot tell. It's *trivial* to
+    # defeat (any stealth plugin resets it to false), so it only ever catches
+    # naive automation — but that catch is free. We still expose the behavioral
+    # breakdown so the arena keeps teaching the harder, unspoofable layer.
+    if webdriver_flag:
+        combined = 0.0
+        verdict = "bot"
+        reason = ("navigator.webdriver is true — the browser reports it is under "
+                  "automation control (trivial fingerprint tell, reset to false by "
+                  "any stealth plugin). Behavioral read: " + reason)
+
     return {
         "score": combined,
         "verdict": verdict,
         "reason": reason,
         "subscores": subscores,
         "features": f,
+        "fingerprint": fingerprint,
     }
 
 
