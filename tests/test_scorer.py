@@ -104,6 +104,20 @@ def test_navigator_webdriver_true_is_caught_but_keeps_behavioral_read():
     assert "navigator.webdriver is true" in result["reason"]
 
 
+def test_cdp_runtime_flag_is_caught():
+    """The CDP fingerprint gate: meta.cdp === true (a DevTools-Protocol Runtime
+    client) flips even a human-shaped trace to bot, like the webdriver flag.
+    NOTE: current Puppeteer/Playwright defer Runtime.enable and report false here
+    (measured) — this only catches DevTools-open / old clients."""
+    trace = human.generate((90, 410), (600, 250), seed=0)
+    trace.setdefault("meta", {})["cdp"] = True
+    result = score(trace)
+    assert result["verdict"] == "bot"
+    assert result["score"] == 0.0
+    assert result["fingerprint"]["cdp_runtime"] is True
+    assert "CDP" in result["reason"]
+
+
 def test_navigator_webdriver_false_or_absent_does_not_penalize():
     """Zero false positives: a real human AND a stealthed bot both report
     webdriver=false, so the flag must never lower a human-shaped trace. Only

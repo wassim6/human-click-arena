@@ -1,0 +1,25 @@
+# Render Blueprint for the human-click-arena demo (free tier).
+#
+# Deploy:
+#   1. Push this file to GitHub.
+#   2. In Render: New + > Blueprint > pick this repo > Apply.
+#      (Or: New + > Web Service > connect repo and copy the settings below.)
+#
+# Notes:
+#   - rootDir is "server" so app.py finds its sibling modules (pow/puzzle/
+#     reputation/scorer) and the client/ folder one level up.
+#   - --workers 1 keeps the in-memory rate-limit & proof-of-work state coherent
+#     (the demo is single-process by design; state resets on each redeploy/wake).
+#   - Free web services sleep after 15 min idle and cold-start in ~1 min.
+services:
+  - type: web
+    name: human-click-arena
+    runtime: python
+    plan: free
+    rootDir: server
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"

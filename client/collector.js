@@ -88,6 +88,23 @@
           // WebDriver-controlled browser reports true (unless a stealth plugin
           // resets it). Only `true` is informative — false proves nothing.
           webdriver: (typeof navigator !== "undefined" && navigator.webdriver === true),
+          // CDP tell: when a Chrome DevTools Protocol client had the Runtime
+          // domain enabled AND eagerly previewed console args, serializing an
+          // Error read its `stack` getter. We trip that getter via console.debug.
+          // MEASURED LIMIT (see RESULTS): current Puppeteer & Playwright DEFER
+          // Runtime.enable specifically to kill this leak, so this returns false
+          // for both — it only catches DevTools-open or old/un-patched clients,
+          // and is blind to OS injectors (pyautogui). A free catch, not a wall.
+          cdp: (function () {
+            try {
+              var hit = false, e = new Error();
+              Object.defineProperty(e, "stack", {
+                configurable: true, get: function () { hit = true; return ""; },
+              });
+              if (typeof console !== "undefined" && console.debug) console.debug(e);
+              return hit;
+            } catch (_) { return false; }
+          })(),
         },
       };
     }

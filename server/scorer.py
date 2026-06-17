@@ -47,19 +47,32 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     # `true` => WebDriver-controlled; `false`/None => human OR stealthed bot.
     wd = meta.get("webdriver")
     webdriver_flag = wd is True
+    # Second fingerprint tell: a Chrome DevTools Protocol client with the Runtime
+    # domain enabled (Puppeteer/Playwright/chromedriver). Same nature as
+    # webdriver: zero false positives, but trivially patchable and blind to OS
+    # injectors. Only `true` is informative.
+    cdp = meta.get("cdp")
+    cdp_flag = cdp is True
     gesture = final_gesture(all_events)
     f = extract({"events": gesture, "target": trace.get("target")})
     f["n_total_events"] = len(all_events)
     f["n_gesture_events"] = len(gesture)
     f["device_pixel_ratio"] = dpr
     f["navigator_webdriver"] = (bool(wd) if wd is not None else None)
-    fingerprint = {"navigator_webdriver": f["navigator_webdriver"]}
+    f["cdp_runtime"] = (bool(cdp) if cdp is not None else None)
+    fingerprint = {"navigator_webdriver": f["navigator_webdriver"],
+                   "cdp_runtime": f["cdp_runtime"]}
 
     # Hard gate: a click with no preceding movement is the loudest bot signal.
     if not f["has_movement"]:
         reason = "no pointer movement before click"
+        flags = []
         if webdriver_flag:
-            reason = "navigator.webdriver is true (automation flag); " + reason
+            flags.append("navigator.webdriver is true")
+        if cdp_flag:
+            flags.append("CDP Runtime attached")
+        if flags:
+            reason = " + ".join(flags) + " (automation); " + reason
         return {
             "score": 0.0,
             "verdict": "bot",
@@ -126,12 +139,16 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     # defeat (any stealth plugin resets it to false), so it only ever catches
     # naive automation — but that catch is free. We still expose the behavioral
     # breakdown so the arena keeps teaching the harder, unspoofable layer.
-    if webdriver_flag:
+    if webdriver_flag or cdp_flag:
         combined = 0.0
         verdict = "bot"
-        reason = ("navigator.webdriver is true — the browser reports it is under "
-                  "automation control (trivial fingerprint tell, reset to false by "
-                  "any stealth plugin). Behavioral read: " + reason)
+        tells = []
+        if webdriver_flag:
+            tells.append("navigator.webdriver is true")
+        if cdp_flag:
+            tells.append("a CDP Runtime client is attached (Puppeteer/Playwright/chromedriver)")
+        reason = (" and ".join(tells) + " — the browser is under automation control "
+                  "(trivial fingerprint tells, both patchable). Behavioral read: " + reason)
 
     return {
         "score": combined,
