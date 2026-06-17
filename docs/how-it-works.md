@@ -89,10 +89,13 @@ reference bypass is `bypasses/pyautogui-humanized-1x.md`.
 
 Once you can't tell bot from human on one request, you stop trying and instead make the *attack* expensive:
 
-- **Proof-of-work** (`server/pow.py`, `client/pow.js`) — the client must find a nonce whose
-  SHA-256 has N leading zero bits. One click is a few thousand hashes (sub-second); a million clicks
-  cost a million times that. Challenges are HMAC-signed so the server verifies them statelessly, with
-  single-use salts against replay. (Production: swap SHA-256 for memory-hard Argon2id/scrypt.)
+- **Proof-of-work** (`server/pow.py`, `client/pow.js`) — the client must find a nonce whose hash has
+  N leading zero bits. The default hash is **Argon2id (memory-hard, 8 MiB/hash)**, so GPUs and ASICs
+  can't make grinding cheap; the algorithm and its cost parameters are part of the HMAC-signed
+  challenge, so a client can't downgrade them. SHA-256 stays as a fallback (the browser uses it if
+  hash-wasm can't load, after a one-time self-check against the server confirms its Argon2 matches).
+  Challenges are single-use against replay. One click costs ~1 s of work; a million cost a million
+  times that. The server verifies a single hash.
 - **Rate limiting + reputation** (`server/reputation.py`) — a sliding window per client key. The same
   client is judged over two windows: **> 3 in 5 min → challenge** (the user must drag a piece into a
   gap — a signed, single-use *slide-to-fit* puzzle, `server/puzzle.py`, verified for correct position

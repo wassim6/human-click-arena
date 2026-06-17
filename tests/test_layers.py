@@ -28,16 +28,17 @@ def _load(path):
 
 
 def _solved(client, body):
-    ch = json.loads(client.get("/pow/challenge").data)
-    nonce = P.solve(ch["salt"], ch["difficulty"])
+    # use sha256 in tests so solving is instant (argon2id is exercised separately)
+    ch = json.loads(client.get("/pow/challenge?alg=sha256").data)
+    nonce = P.solve(ch)
     return dict(body, pow=dict(ch, nonce=str(nonce)))
 
 
 # ---- proof of work --------------------------------------------------------
 
-def test_pow_roundtrip_and_replay():
-    ch = P.make_challenge(12)
-    nonce = P.solve(ch["salt"], ch["difficulty"])
+def test_pow_sha256_roundtrip_and_replay():
+    ch = P.make_challenge(12, alg="sha256")
+    nonce = P.solve(ch)
     ok, _ = P.verify(dict(ch, nonce=str(nonce)))
     assert ok
     ok2, msg2 = P.verify(dict(ch, nonce=str(nonce)))   # replay
@@ -45,9 +46,24 @@ def test_pow_roundtrip_and_replay():
 
 
 def test_pow_rejects_wrong_work():
-    ch = P.make_challenge(20)
+    ch = P.make_challenge(20, alg="sha256")
     ok, msg = P.verify(dict(ch, nonce="0"))            # nonce 0 won't meet 20 bits
     assert not ok and "insufficient" in msg
+
+
+def test_pow_argon2id_is_memory_hard_and_round_trips():
+    if not P.ARGON2_AVAILABLE:
+        import pytest as _pt
+        _pt.skip("argon2-cffi not installed")
+    ch = P.make_challenge(4, alg="argon2id")           # low bits: each hash is costly
+    assert ch["alg"] == "argon2id" and ch["m"] >= 1024  # memory-hard params signed in
+    nonce = P.solve(ch)
+    ok, _ = P.verify(dict(ch, nonce=str(nonce)))
+    assert ok
+    # tampering with the memory cost breaks the signature
+    bad = dict(ch, m=8, nonce=str(nonce))
+    ok2, msg2 = P.verify(bad)
+    assert not ok2 and "signature" in msg2
 
 
 # ---- reputation -----------------------------------------------------------
@@ -122,14 +138,14 @@ def test_visual_puzzle_challenge():
 
 def test_challenge_escalation_endpoint():
     client = A.app.test_client()
-    # solving the escalated proof-of-work clears the challenge
-    ch = json.loads(client.get(f"/pow/challenge?bits={A.ESCALATED_BITS}").data)
-    nonce = P.solve(ch["salt"], ch["difficulty"])
+    # solving the escalated proof-of-work clears the challenge (sha256 -> fast in tests)
+    ch = json.loads(client.get(f"/pow/challenge?alg=sha256&bits={A.ESCALATED_BITS}").data)
+    nonce = P.solve(ch)
     r = json.loads(client.post("/challenge/verify", json={"pow": dict(ch, nonce=str(nonce))}).data)
     assert r["decision"] == "allow"
     # a too-easy solution does not
-    ch2 = json.loads(client.get("/pow/challenge?bits=8").data)
-    n2 = P.solve(ch2["salt"], ch2["difficulty"])
+    ch2 = json.loads(client.get("/pow/challenge?alg=sha256&bits=8").data)
+    n2 = P.solve(ch2)
     r2 = json.loads(client.post("/challenge/verify", json={"pow": dict(ch2, nonce=str(n2))}).data)
     assert r2["decision"] == "deny"
 

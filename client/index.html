@@ -117,6 +117,8 @@
 </main>
 
 <script src="sha256.js"></script>
+<!-- Argon2id (memory-hard PoW); if this CDN is blocked, pow.js falls back to SHA-256. -->
+<script src="https://cdn.jsdelivr.net/npm/hash-wasm@4/dist/index.umd.min.js"></script>
 <script src="pow.js"></script>
 <script src="collector.js"></script>
 <script>

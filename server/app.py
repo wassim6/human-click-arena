@@ -53,7 +53,26 @@ def js(name):
 @app.route("/pow/challenge")
 def pow_challenge():
     bits = request.args.get("bits", type=int)
-    return jsonify(powmod.make_challenge(bits))
+    alg = request.args.get("alg")            # "argon2id" (default) or "sha256"
+    return jsonify(powmod.make_challenge(difficulty=bits, alg=alg))
+
+
+@app.route("/pow/echo")
+def pow_echo():
+    """Return the server's digest for given params so the browser can confirm its
+    Argon2 implementation matches before relying on it (else it uses SHA-256).
+    Harmless: the hash function is public."""
+    salt = request.args.get("salt", "")
+    nonce = request.args.get("nonce", "")
+    alg = request.args.get("alg", "argon2id")
+    m = request.args.get("m", type=int, default=powmod.ARGON_M)
+    t = request.args.get("t", type=int, default=powmod.ARGON_T)
+    p = request.args.get("p", type=int, default=powmod.ARGON_P)
+    try:
+        digest = powmod._digest(alg, salt, nonce, m, t, p)
+    except Exception as exc:                 # argon2 unavailable / bad params
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"hex": digest.hex()})
 
 
 @app.route("/reset", methods=["POST"])
