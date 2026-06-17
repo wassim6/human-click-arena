@@ -105,13 +105,32 @@ Once you can't tell bot from human on one request, you stop trying and instead m
 
 `/score` combines all of it into one decision — `allow` / `challenge` / `deny`.
 
-## What a real deployment would still add (out of scope here)
+## Request fingerprinting (partially implemented) and its honest ceiling
 
-Signals an attacker **cannot spoof from JavaScript**, plus shared infrastructure:
+`server/request_fingerprint.py` adds a request-level layer, wired into `/score`:
 
-- **TLS fingerprint (JA3/JA4)** and **HTTP/2 fingerprint** / header order — though note these see a
-  *genuine* browser when the attack is pyautogui-on-real-Chrome, so they don't flag it either.
-- **IP / ASN reputation** and **cross-site telemetry** (what a Cloudflare-scale operator has).
-- A shared, Redis-backed rate store instead of this in-memory stub.
+- **HTTP-layer fingerprint** — a real human reaches `/score` through the page's browser `fetch()`,
+  which automatically carries `Sec-Fetch-*` and (on Chromium) `sec-ch-ua`. A non-browser client
+  (curl / requests / httpx / Go-http, or our own urllib flood) omits them. So a direct-to-API POST —
+  the *"skip the browser and POST a forged human trace"* attack that the JS and behavioral layers
+  cannot see at all — is denied. (Header **order** would add signal, but WSGI discards it.)
+- **`window.cdc_…` tell** (`collector.js` → `meta.driverProps`, gated in `scorer.py`) — chromedriver /
+  selenium inject tell-tale globals. Non-empty ⇒ a **non-UC Selenium**. UC mode erases them; Puppeteer
+  and Playwright never set them (measured: `driverProps = []`).
+- **JA3 / JA4 pass-through** — if an edge injects a TLS hash header (`cf-ja3-hash`, `x-ja3`, `x-ja4`)
+  it is read and checked against a blocklist.
 
-Behavioral scoring is one input to a layered decision, never a standalone gate.
+**The honest ceiling — why none of this catches the top of the leaderboard:**
+
+- **Real TLS JA3/JA4 and HTTP/2 frame fingerprints are not computable in the app on a managed host
+  (Render, most PaaS/CDN).** TLS + HTTP/2 are terminated at the edge; Flask receives decrypted
+  HTTP/1.1. You need a TLS-terminating front (Go + uTLS) or a CDN that injects the hash to get them.
+- **Even a real JA3 would not flag the leaders.** Playwright / Puppeteer / Selenium drive a *genuine*
+  Chrome, so their TLS handshake *and* their `fetch()` headers are a real Chrome's — identical to a
+  human. JA3 catches non-browser stacks (`curl_cffi`, `requests`, Go), not a browser under automation.
+  And header values are trivially spoofable (see `ratelimit_attack.py`, which sends Chrome headers and
+  sails through — only the **rate limit** stops it).
+
+Still missing for a real deployment: **IP / ASN reputation**, **cross-site telemetry**, and a shared
+**Redis-backed** rate store instead of this in-memory stub. Behavioral scoring is one input to a
+layered decision, never a standalone gate.

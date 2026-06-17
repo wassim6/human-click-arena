@@ -118,6 +118,27 @@ def test_cdp_runtime_flag_is_caught():
     assert "CDP" in result["reason"]
 
 
+def test_driver_props_present_is_caught():
+    """meta.driverProps non-empty (chromedriver/selenium injected globals) flips a
+    human-shaped trace to bot — catches non-UC Selenium. Puppeteer/Playwright and
+    UC mode report an empty list, so they are unaffected."""
+    trace = human.generate((90, 410), (600, 250), seed=0)
+    trace.setdefault("meta", {})["driverProps"] = ["$cdc_asdjflasutopfhvcZLmcfl_"]
+    result = score(trace)
+    assert result["verdict"] == "bot"
+    assert result["score"] == 0.0
+    assert result["fingerprint"]["driver_props"] == ["$cdc_asdjflasutopfhvcZLmcfl_"]
+    assert "chromedriver/selenium" in result["reason"]
+
+
+def test_empty_driver_props_does_not_penalize():
+    """No false positives: an empty driverProps list (Puppeteer/Playwright/UC)
+    must not lower a human-shaped trace."""
+    trace = human.generate((90, 410), (600, 250), seed=2)
+    trace.setdefault("meta", {})["driverProps"] = []
+    assert score(trace)["score"] >= 0.5
+
+
 def test_navigator_webdriver_false_or_absent_does_not_penalize():
     """Zero false positives: a real human AND a stealthed bot both report
     webdriver=false, so the flag must never lower a human-shaped trace. Only

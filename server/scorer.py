@@ -53,6 +53,10 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     # injectors. Only `true` is informative.
     cdp = meta.get("cdp")
     cdp_flag = cdp is True
+    # Third fingerprint tell: chromedriver/selenium injected globals ($cdc_…,
+    # __webdriver_*). Non-empty => a non-stealth Selenium. UC mode erases them.
+    driver_props = meta.get("driverProps") or []
+    driver_props_flag = isinstance(driver_props, list) and len(driver_props) > 0
     gesture = final_gesture(all_events)
     f = extract({"events": gesture, "target": trace.get("target")})
     f["n_total_events"] = len(all_events)
@@ -60,8 +64,10 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     f["device_pixel_ratio"] = dpr
     f["navigator_webdriver"] = (bool(wd) if wd is not None else None)
     f["cdp_runtime"] = (bool(cdp) if cdp is not None else None)
+    f["driver_props"] = list(driver_props) if driver_props_flag else []
     fingerprint = {"navigator_webdriver": f["navigator_webdriver"],
-                   "cdp_runtime": f["cdp_runtime"]}
+                   "cdp_runtime": f["cdp_runtime"],
+                   "driver_props": f["driver_props"]}
 
     # Hard gate: a click with no preceding movement is the loudest bot signal.
     if not f["has_movement"]:
@@ -71,6 +77,8 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
             flags.append("navigator.webdriver is true")
         if cdp_flag:
             flags.append("CDP Runtime attached")
+        if driver_props_flag:
+            flags.append("chromedriver/selenium globals present")
         if flags:
             reason = " + ".join(flags) + " (automation); " + reason
         return {
@@ -139,7 +147,7 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     # defeat (any stealth plugin resets it to false), so it only ever catches
     # naive automation — but that catch is free. We still expose the behavioral
     # breakdown so the arena keeps teaching the harder, unspoofable layer.
-    if webdriver_flag or cdp_flag:
+    if webdriver_flag or cdp_flag or driver_props_flag:
         combined = 0.0
         verdict = "bot"
         tells = []
@@ -147,8 +155,10 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
             tells.append("navigator.webdriver is true")
         if cdp_flag:
             tells.append("a CDP Runtime client is attached (Puppeteer/Playwright/chromedriver)")
+        if driver_props_flag:
+            tells.append("chromedriver/selenium globals present (" + ", ".join(driver_props[:3]) + ")")
         reason = (" and ".join(tells) + " — the browser is under automation control "
-                  "(trivial fingerprint tells, both patchable). Behavioral read: " + reason)
+                  "(fingerprint tells, all patchable). Behavioral read: " + reason)
 
     return {
         "score": combined,

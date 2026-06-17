@@ -105,6 +105,36 @@
               return hit;
             } catch (_) { return false; }
           })(),
+          // chromedriver / selenium inject tell-tale globals ($cdc_… on document,
+          // __webdriver_*/__selenium_* on window). This lists any it finds — a
+          // non-empty list means a NON-stealth Selenium/chromedriver. UC mode
+          // (undetected-chromedriver) erases them, and Puppeteer/Playwright never
+          // set them, so this catches plain Selenium only. Patchable; not a wall.
+          driverProps: (function () {
+            try {
+              var hits = [], names = [
+                "__webdriver_evaluate", "__selenium_unwrapped", "__webdriver_script_function",
+                "__webdriver_script_func", "__webdriver_script_fn", "__fxdriver_evaluate",
+                "__driver_unwrapped", "__webdriver_unwrapped", "__driver_evaluate",
+                "__selenium_evaluate", "__fxdriver_unwrapped", "_Selenium_IDE_Recorder",
+                "_selenium", "calledSelenium", "$cdc_asdjflasutopfhvcZLmcfl_",
+                "$chrome_asyncScriptInfo", "__$webdriverAsyncExecutor", "_phantom",
+                "__nightmare", "callPhantom", "domAutomation", "domAutomationController"];
+              for (var i = 0; i < names.length; i++) {
+                try {
+                  if (names[i] in window ||
+                      (typeof document !== "undefined" && names[i] in document)) hits.push(names[i]);
+                } catch (_) {}
+              }
+              try {
+                Object.getOwnPropertyNames(window).forEach(function (k) {
+                  if (/cdc_|^\$cdc|webdriver|selenium|fxdriver|driver_(evaluate|unwrapped)/i.test(k)
+                      && hits.indexOf(k) === -1) hits.push(k);
+                });
+              } catch (_) {}
+              return hits.slice(0, 20);
+            } catch (_) { return []; }
+          })(),
         },
       };
     }

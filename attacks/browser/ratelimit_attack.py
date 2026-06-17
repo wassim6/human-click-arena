@@ -28,17 +28,33 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import pow as powmod            # noqa: E402  (reference PoW solver)
 import generate_human_trace as human  # noqa: E402
 
-UA = "hca-ratelimit-bot/1.0"
+# A real Chrome UA + the Sec-Fetch / sec-ch-ua headers a browser fetch attaches.
+# Header spoofing is trivial — that's the point: it sails past the request-
+# fingerprint layer, so only the RATE limit (volume) actually stops this flood.
+UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, "
+      "like Gecko) Chrome/126.0.0.0 Safari/537.36")
+BROWSERISH = {
+    "User-Agent": UA,
+    "Accept": "*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Sec-CH-UA": '"Chromium";v="126", "Google Chrome";v="126", "Not.A/Brand";v="24"',
+    "Sec-Fetch-Site": "same-origin",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Dest": "empty",
+}
 
 
 def _get(url):
-    with urllib.request.urlopen(url, timeout=20) as r:
+    req = urllib.request.Request(url, headers=BROWSERISH)
+    with urllib.request.urlopen(req, timeout=20) as r:
         return json.loads(r.read())
 
 
 def _post(url, body, headers=None):
     data = json.dumps(body).encode()
-    h = {"Content-Type": "application/json", "User-Agent": UA}
+    h = {"Content-Type": "application/json"}
+    h.update(BROWSERISH)
     if headers:
         h.update(headers)
     req = urllib.request.Request(url, data=data, headers=h)

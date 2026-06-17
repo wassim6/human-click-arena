@@ -27,6 +27,7 @@ from flask import Flask, jsonify, request, send_from_directory
 
 import pow as powmod
 import puzzle as puzzlemod
+import request_fingerprint as rfp
 from reputation import Reputation
 from scorer import score
 
@@ -92,7 +93,7 @@ def reset_endpoint():
     })
 
 
-def _decide(behavioral, pow_ok, pow_provided, rep):
+def _decide(behavioral, pow_ok, pow_provided, rep, request_fp):
     """Combine the layers into allow / challenge / deny."""
     if rep["state"] == "blocked":
         lo = rep["long"]
@@ -101,6 +102,13 @@ def _decide(behavioral, pow_ok, pow_provided, rep):
         return "deny", (f"rate limit: more than {lo['limit']} attempts in "
                         f"{round(lo['window_s'] / 60)} min — blocked for "
                         f"{round(rep['ban_seconds'] / 60)} min{retry}")
+    # A real human always reaches /score through the page's browser fetch. A
+    # non-browser HTTP client (curl/requests/Go) hitting it directly is the
+    # "skip the browser, POST a forged trace" attack — deny it outright.
+    # (Header values are spoofable, so this only stops the lazy direct-API bot.)
+    if request_fp.get("suspicious"):
+        return "deny", "request fingerprint: " + "; ".join(request_fp.get("reasons", [])
+                                                           or ["non-browser client"])
     if REQUIRE_POW and not pow_ok:
         return "deny", "proof-of-work missing or invalid"
     if behavioral["verdict"] == "bot":
@@ -132,7 +140,9 @@ def score_endpoint():
     key = Reputation.key(request.remote_addr or "?", str(meta.get("ua", "")), meta.get("dpr", 1))
     rep = reputation.assess(key)
 
-    decision, reason = _decide(behavioral, pow_ok, solution is not None, rep)
+    request_fp = rfp.analyze(request)
+
+    decision, reason = _decide(behavioral, pow_ok, solution is not None, rep, request_fp)
 
     return jsonify({
         "decision": decision,
@@ -141,6 +151,7 @@ def score_endpoint():
         "pow": {"required": REQUIRE_POW, "provided": solution is not None,
                 "ok": pow_ok, "detail": pow_detail},
         "reputation": rep,
+        "request_fp": request_fp,
         "escalate_bits": ESCALATED_BITS,   # difficulty to clear a "challenge"
     })
 
