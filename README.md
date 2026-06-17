@@ -120,7 +120,12 @@ human-click-arena/
 │   ├── score_cli.py        # score a trace from stdin (for piping)
 │   └── requirements.txt
 ├── tools/
-│   └── generate_pyautogui_trace.py   # synthetic PyAutoGUI-style traces
+│   ├── generate_pyautogui_trace.py   # synthetic PyAutoGUI-style trace (offline, CI)
+│   └── generate_human_trace.py       # synthetic human-like trace (offline, CI)
+├── attacks/
+│   ├── pyautogui_attack.py # REAL pyautogui: finds click.png on screen, moves + clicks
+│   ├── click.png           # template image of the demo button
+│   └── requirements.txt
 ├── tests/
 │   ├── test_scorer.py
 │   └── fixtures/           # sample human + bot traces (JSON)
@@ -130,6 +135,10 @@ human-click-arena/
 └── docs/
     └── how-it-works.md
 ```
+
+> Two PyAutoGUI files, on purpose: `tools/generate_pyautogui_trace.py` fabricates a JSON trace
+> *offline* (so tests run without a desktop), while `attacks/pyautogui_attack.py` drives the **real OS
+> cursor** against the live demo using image recognition on `click.png`. See [attacks/](attacks/README.md).
 
 ## Trace format
 

@@ -1,0 +1,4 @@
+# Live attacker deps (separate from the server/test deps).
+pyautogui>=0.9.54
+opencv-python>=4.8     # enables locateCenterOnScreen(confidence=...)
+pillow>=10.0           # screenshot backend for pyautogui
