@@ -43,7 +43,7 @@
     "verdict": "bot",
     "score": 0.0,
     "subscores": {
-      "easing": 0.0,
+      "easing": 0.3714,
       "straightness": 0.0,
       "submovements": 1.0,
       "subpixel": 1.0,
@@ -52,10 +52,10 @@
     },
     "n_move_events": 29,
     "directness": 1.0,
-    "easing_r2": 0.98364,
-    "dt_cv": 0.373,
+    "easing_r2": 0.93172,
+    "dt_cv": 0.85203,
     "int_coord_ratio": 0.5172,
-    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: path is nearly a straight line; timing matches the 'linear' tween (R^2=0.98364)"
+    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: movement shows curvature, irregular timing and corrective sub-movements"
   },
   {
     "engine": "playwright",
@@ -64,10 +64,10 @@
     "strategy": "linear",
     "dpr": 1.0,
     "navigator_webdriver": false,
-    "verdict": "suspicious",
-    "score": 0.4203,
+    "verdict": "human",
+    "score": 0.5215,
     "subscores": {
-      "easing": 0.0,
+      "easing": 0.4366,
       "straightness": 0.0,
       "submovements": 1.0,
       "subpixel": 1.0,
@@ -76,10 +76,10 @@
     },
     "n_move_events": 29,
     "directness": 1.0,
-    "easing_r2": 0.98223,
-    "dt_cv": 0.41099,
+    "easing_r2": 0.92324,
+    "dt_cv": 0.90247,
     "int_coord_ratio": 0.5172,
-    "reason": "path is nearly a straight line; timing matches the 'linear' tween (R^2=0.98223)"
+    "reason": "movement shows curvature, irregular timing and corrective sub-movements"
   },
   {
     "engine": "playwright",
@@ -91,7 +91,7 @@
     "verdict": "bot",
     "score": 0.0,
     "subscores": {
-      "easing": 0.1289,
+      "easing": 0.0,
       "straightness": 0.6075,
       "submovements": 1.0,
       "subpixel": 1.0,
@@ -100,8 +100,8 @@
     },
     "n_move_events": 62,
     "directness": 0.93807,
-    "easing_r2": 0.96324,
-    "dt_cv": 0.31878,
+    "easing_r2": 0.99273,
+    "dt_cv": 0.53903,
     "int_coord_ratio": 0.0323,
     "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: movement shows curvature, irregular timing and corrective sub-movements"
   },
@@ -113,9 +113,9 @@
     "dpr": 1.0,
     "navigator_webdriver": false,
     "verdict": "human",
-    "score": 0.6985,
+    "score": 0.6603,
     "subscores": {
-      "easing": 0.1648,
+      "easing": 0.0,
       "straightness": 0.6075,
       "submovements": 1.0,
       "subpixel": 1.0,
@@ -124,8 +124,8 @@
     },
     "n_move_events": 62,
     "directness": 0.93807,
-    "easing_r2": 0.95857,
-    "dt_cv": 0.37044,
+    "easing_r2": 0.99418,
+    "dt_cv": 0.55053,
     "int_coord_ratio": 0.0323,
     "reason": "movement shows curvature, irregular timing and corrective sub-movements"
   },
@@ -173,7 +173,7 @@
     "verdict": "bot",
     "score": 0,
     "subscores": {
-      "easing": 0,
+      "easing": 0.1277,
       "straightness": 0,
       "submovements": 1,
       "subpixel": 1,
@@ -182,10 +182,10 @@
     },
     "n_move_events": 29,
     "directness": 1,
-    "easing_r2": 0.98295,
-    "dt_cv": 0.39448,
+    "easing_r2": 0.9634,
+    "dt_cv": 2.75484,
     "int_coord_ratio": 0.1034,
-    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: path is nearly a straight line; timing matches the 'linear' tween (R^2=0.98295)"
+    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: path is nearly a straight line; no physiological jitter"
   },
   {
     "engine": "puppeteer",
@@ -195,9 +195,9 @@
     "dpr": 1,
     "navigator_webdriver": false,
     "verdict": "suspicious",
-    "score": 0.4203,
+    "score": 0.4496,
     "subscores": {
-      "easing": 0,
+      "easing": 0.1262,
       "straightness": 0,
       "submovements": 1,
       "subpixel": 1,
@@ -206,10 +206,10 @@
     },
     "n_move_events": 29,
     "directness": 1,
-    "easing_r2": 0.9838,
-    "dt_cv": 0.36283,
+    "easing_r2": 0.96359,
+    "dt_cv": 2.75239,
     "int_coord_ratio": 0.1034,
-    "reason": "path is nearly a straight line; timing matches the 'linear' tween (R^2=0.9838)"
+    "reason": "path is nearly a straight line; no physiological jitter"
   },
   {
     "engine": "puppeteer",
@@ -221,18 +221,18 @@
     "verdict": "bot",
     "score": 0,
     "subscores": {
-      "easing": 1,
+      "easing": 0.5275,
       "straightness": 1,
-      "submovements": 0,
+      "submovements": 1,
       "subpixel": 1,
-      "timing": 0.2389,
-      "tremor": 0.3629
+      "timing": 0,
+      "tremor": 0.5107
     },
-    "n_move_events": 111,
-    "directness": 0.8856,
-    "easing_r2": 0,
-    "dt_cv": 0.10972,
-    "int_coord_ratio": 0.009,
+    "n_move_events": 85,
+    "directness": 0.85618,
+    "easing_r2": 0.91142,
+    "dt_cv": 0.04893,
+    "int_coord_ratio": 0.0118,
     "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: movement shows curvature, irregular timing and corrective sub-movements"
   },
   {
@@ -243,20 +243,20 @@
     "dpr": 1,
     "navigator_webdriver": false,
     "verdict": "human",
-    "score": 0.7225,
+    "score": 0.587,
     "subscores": {
-      "easing": 1,
+      "easing": 0.4118,
       "straightness": 1,
-      "submovements": 0.5,
+      "submovements": 1,
       "subpixel": 1,
-      "timing": 0.4828,
-      "tremor": 0.2062
+      "timing": 0.0012,
+      "tremor": 0.2899
     },
-    "n_move_events": 156,
-    "directness": 0.8924,
-    "easing_r2": 0,
-    "dt_cv": 0.1707,
-    "int_coord_ratio": 0.0064,
+    "n_move_events": 155,
+    "directness": 0.8097,
+    "easing_r2": 0.92647,
+    "dt_cv": 0.05031,
+    "int_coord_ratio": 0.0065,
     "reason": "movement shows curvature, irregular timing and corrective sub-movements"
   },
   {
@@ -274,7 +274,6 @@
     "easing_r2": 0.0,
     "dt_cv": 0.0,
     "int_coord_ratio": 1.0,
-    "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
     "reason": "navigator.webdriver is true (automation flag); no pointer movement before click"
   },
   {
@@ -283,7 +282,7 @@
     "stealth_lib": "selenium-stealth",
     "strategy": "native",
     "dpr": 1.0,
-    "navigator_webdriver": false,
+    "navigator_webdriver": null,
     "verdict": "bot",
     "score": 0.0,
     "subscores": {},
@@ -292,7 +291,6 @@
     "easing_r2": 0.0,
     "dt_cv": 0.0,
     "int_coord_ratio": 1.0,
-    "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
     "reason": "no pointer movement before click"
   },
   {
@@ -309,16 +307,16 @@
       "straightness": 0.0,
       "submovements": 1.0,
       "subpixel": 0.0,
-      "timing": 0.6098,
+      "timing": 1.0,
       "tremor": 0.0
     },
     "n_move_events": 29,
     "directness": 0.99987,
-    "easing_r2": 0.99531,
-    "dt_cv": 0.20246,
+    "easing_r2": 0.9809,
+    "dt_cv": 0.47279,
     "int_coord_ratio": 1.0,
     "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
-    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: path is nearly a straight line; timing matches the 'linear' tween (R^2=0.99531)"
+    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: path is nearly a straight line; timing matches the 'linear' tween (R^2=0.9809)"
   },
   {
     "engine": "selenium",
@@ -328,9 +326,9 @@
     "dpr": 1.0,
     "navigator_webdriver": false,
     "verdict": "suspicious",
-    "score": 0.3188,
+    "score": 0.3401,
     "subscores": {
-      "easing": 0.0,
+      "easing": 0.0916,
       "straightness": 0.0,
       "submovements": 1.0,
       "subpixel": 0.0,
@@ -339,11 +337,11 @@
     },
     "n_move_events": 29,
     "directness": 0.99987,
-    "easing_r2": 0.9835,
-    "dt_cv": 0.39344,
+    "easing_r2": 0.96809,
+    "dt_cv": 0.55112,
     "int_coord_ratio": 1.0,
     "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
-    "reason": "path is nearly a straight line; timing matches the 'linear' tween (R^2=0.9835)"
+    "reason": "path is nearly a straight line; no physiological jitter"
   },
   {
     "engine": "selenium",
@@ -355,7 +353,7 @@
     "verdict": "bot",
     "score": 0.0,
     "subscores": {
-      "easing": 0.0502,
+      "easing": 0.0,
       "straightness": 0.6038,
       "submovements": 1.0,
       "subpixel": 0.0,
@@ -364,8 +362,8 @@
     },
     "n_move_events": 62,
     "directness": 0.93843,
-    "easing_r2": 0.97348,
-    "dt_cv": 0.35439,
+    "easing_r2": 0.99504,
+    "dt_cv": 0.54223,
     "int_coord_ratio": 1.0,
     "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
     "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: movement shows curvature, irregular timing and corrective sub-movements"
@@ -378,9 +376,9 @@
     "dpr": 1.0,
     "navigator_webdriver": false,
     "verdict": "human",
-    "score": 0.5899,
+    "score": 0.5621,
     "subscores": {
-      "easing": 0.12,
+      "easing": 0.0,
       "straightness": 0.6038,
       "submovements": 1.0,
       "subpixel": 0.0,
@@ -389,8 +387,8 @@
     },
     "n_move_events": 62,
     "directness": 0.93843,
-    "easing_r2": 0.9644,
-    "dt_cv": 0.34886,
+    "easing_r2": 0.99322,
+    "dt_cv": 0.53324,
     "int_coord_ratio": 1.0,
     "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
     "reason": "movement shows curvature, irregular timing and corrective sub-movements"
@@ -410,7 +408,6 @@
     "easing_r2": 0.0,
     "dt_cv": 0.0,
     "int_coord_ratio": 1.0,
-    "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
     "reason": "navigator.webdriver is true (automation flag); no pointer movement before click"
   },
   {
@@ -428,7 +425,6 @@
     "easing_r2": 0.0,
     "dt_cv": 0.0,
     "int_coord_ratio": 1.0,
-    "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
     "reason": "no pointer movement before click"
   },
   {
@@ -441,20 +437,20 @@
     "verdict": "bot",
     "score": 0.0,
     "subscores": {
-      "easing": 0.0,
+      "easing": 0.0246,
       "straightness": 0.0,
       "submovements": 1.0,
       "subpixel": 0.0,
-      "timing": 0.6714,
+      "timing": 1.0,
       "tremor": 0.0
     },
     "n_move_events": 29,
     "directness": 0.99987,
-    "easing_r2": 0.99605,
-    "dt_cv": 0.21784,
+    "easing_r2": 0.9768,
+    "dt_cv": 0.49647,
     "int_coord_ratio": 1.0,
     "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
-    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: path is nearly a straight line; timing matches the 'linear' tween (R^2=0.99605)"
+    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: path is nearly a straight line; no physiological jitter"
   },
   {
     "engine": "seleniumbase",
@@ -463,23 +459,23 @@
     "strategy": "linear",
     "dpr": 1.0,
     "navigator_webdriver": false,
-    "verdict": "bot",
-    "score": 0.15,
+    "verdict": "suspicious",
+    "score": 0.3892,
     "subscores": {
-      "easing": 0.0,
+      "easing": 0.3035,
       "straightness": 0.0,
       "submovements": 1.0,
       "subpixel": 0.0,
-      "timing": 0.5836,
+      "timing": 1.0,
       "tremor": 0.0
     },
     "n_move_events": 29,
     "directness": 0.99987,
-    "easing_r2": 0.99527,
-    "dt_cv": 0.1959,
+    "easing_r2": 0.94054,
+    "dt_cv": 0.66828,
     "int_coord_ratio": 1.0,
     "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
-    "reason": "path is nearly a straight line; timing matches the 'linear' tween (R^2=0.99527)"
+    "reason": "path is nearly a straight line; no physiological jitter"
   },
   {
     "engine": "seleniumbase",
@@ -491,7 +487,7 @@
     "verdict": "bot",
     "score": 0.0,
     "subscores": {
-      "easing": 0.0758,
+      "easing": 0.0,
       "straightness": 0.6038,
       "submovements": 1.0,
       "subpixel": 0.0,
@@ -500,8 +496,8 @@
     },
     "n_move_events": 62,
     "directness": 0.93843,
-    "easing_r2": 0.97015,
-    "dt_cv": 0.35663,
+    "easing_r2": 0.99253,
+    "dt_cv": 0.54361,
     "int_coord_ratio": 1.0,
     "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
     "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: movement shows curvature, irregular timing and corrective sub-movements"
@@ -514,9 +510,9 @@
     "dpr": 1.0,
     "navigator_webdriver": false,
     "verdict": "human",
-    "score": 0.6027,
+    "score": 0.5621,
     "subscores": {
-      "easing": 0.1752,
+      "easing": 0.0,
       "straightness": 0.6038,
       "submovements": 1.0,
       "subpixel": 0.0,
@@ -525,206 +521,10 @@
     },
     "n_move_events": 62,
     "directness": 0.93843,
-    "easing_r2": 0.95723,
-    "dt_cv": 0.3583,
+    "easing_r2": 0.99545,
+    "dt_cv": 0.51447,
     "int_coord_ratio": 1.0,
     "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
     "reason": "movement shows curvature, irregular timing and corrective sub-movements"
-  },
-  {
-    "engine": "playwright",
-    "stealth": false,
-    "stealth_lib": "off",
-    "strategy": "humanized",
-    "dpr": 2.0,
-    "navigator_webdriver": true,
-    "verdict": "bot",
-    "score": 0.0,
-    "subscores": {
-      "easing": 0.0485,
-      "straightness": 0.6075,
-      "submovements": 1.0,
-      "subpixel": 1.0,
-      "timing": 1.0,
-      "tremor": 0.8057
-    },
-    "n_move_events": 62,
-    "directness": 0.93807,
-    "easing_r2": 0.97369,
-    "dt_cv": 0.37392,
-    "int_coord_ratio": 0.0323,
-    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: movement shows curvature, irregular timing and corrective sub-movements"
-  },
-  {
-    "engine": "playwright",
-    "stealth": true,
-    "stealth_lib": "playwright-stealth",
-    "strategy": "humanized",
-    "dpr": 2.0,
-    "navigator_webdriver": false,
-    "verdict": "human",
-    "score": 0.7012,
-    "subscores": {
-      "easing": 0.1855,
-      "straightness": 0.6075,
-      "submovements": 1.0,
-      "subpixel": 1.0,
-      "timing": 0.9879,
-      "tremor": 0.8057
-    },
-    "n_move_events": 62,
-    "directness": 0.93807,
-    "easing_r2": 0.95588,
-    "dt_cv": 0.29697,
-    "int_coord_ratio": 0.0323,
-    "reason": "movement shows curvature, irregular timing and corrective sub-movements"
-  },
-  {
-    "engine": "selenium",
-    "stealth": false,
-    "stealth_lib": "off",
-    "strategy": "humanized",
-    "dpr": 2.0,
-    "navigator_webdriver": true,
-    "verdict": "bot",
-    "score": 0.0,
-    "subscores": {
-      "easing": 0.1916,
-      "straightness": 0.6038,
-      "submovements": 1.0,
-      "subpixel": 0.0,
-      "timing": 1.0,
-      "tremor": 0.833
-    },
-    "n_move_events": 62,
-    "directness": 0.93843,
-    "easing_r2": 0.95509,
-    "dt_cv": 0.33468,
-    "int_coord_ratio": 1.0,
-    "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
-    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: every sample is an integer pixel on a HiDPI display (dpr=2) \u2014 OS injector, not a real pointer; every sample lands on an integer pixel (OS-injected); timing matches the 'easeOutSine' tween (R^2=0.95509)"
-  },
-  {
-    "engine": "selenium",
-    "stealth": true,
-    "stealth_lib": "selenium-stealth",
-    "strategy": "humanized",
-    "dpr": 2.0,
-    "navigator_webdriver": false,
-    "verdict": "bot",
-    "score": 0.22,
-    "subscores": {
-      "easing": 0.1142,
-      "straightness": 0.6038,
-      "submovements": 1.0,
-      "subpixel": 0.0,
-      "timing": 1.0,
-      "tremor": 0.833
-    },
-    "n_move_events": 62,
-    "directness": 0.93843,
-    "easing_r2": 0.96515,
-    "dt_cv": 0.34045,
-    "int_coord_ratio": 1.0,
-    "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
-    "reason": "every sample is an integer pixel on a HiDPI display (dpr=2) \u2014 OS injector, not a real pointer; every sample lands on an integer pixel (OS-injected); timing matches the 'easeOutSine' tween (R^2=0.96515)"
-  },
-  {
-    "engine": "puppeteer",
-    "stealth": false,
-    "stealth_lib": "off",
-    "strategy": "humanized",
-    "dpr": 2,
-    "navigator_webdriver": true,
-    "verdict": "bot",
-    "score": 0,
-    "subscores": {
-      "easing": 0.4405,
-      "straightness": 0.7031,
-      "submovements": 0.5,
-      "subpixel": 1,
-      "timing": 0.5573,
-      "tremor": 0.103
-    },
-    "n_move_events": 140,
-    "directness": 0.9288,
-    "easing_r2": 0.92273,
-    "dt_cv": 0.18933,
-    "int_coord_ratio": 0.0071,
-    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: movement shows curvature, irregular timing and corrective sub-movements"
-  },
-  {
-    "engine": "puppeteer",
-    "stealth": true,
-    "stealth_lib": "puppeteer-extra-stealth",
-    "strategy": "humanized",
-    "dpr": 2,
-    "navigator_webdriver": false,
-    "verdict": "human",
-    "score": 0.8087,
-    "subscores": {
-      "easing": 0.7582,
-      "straightness": 1,
-      "submovements": 1,
-      "subpixel": 1,
-      "timing": 0.6642,
-      "tremor": 0.4702
-    },
-    "n_move_events": 94,
-    "directness": 0.83431,
-    "easing_r2": 0.88144,
-    "dt_cv": 0.21605,
-    "int_coord_ratio": 0.0106,
-    "reason": "movement shows curvature, irregular timing and corrective sub-movements"
-  },
-  {
-    "engine": "seleniumbase",
-    "stealth": false,
-    "stealth_lib": "off",
-    "strategy": "humanized",
-    "dpr": 2.0,
-    "navigator_webdriver": true,
-    "verdict": "bot",
-    "score": 0.0,
-    "subscores": {
-      "easing": 0.0457,
-      "straightness": 0.6038,
-      "submovements": 1.0,
-      "subpixel": 0.0,
-      "timing": 1.0,
-      "tremor": 0.833
-    },
-    "n_move_events": 62,
-    "directness": 0.93843,
-    "easing_r2": 0.97406,
-    "dt_cv": 0.36317,
-    "int_coord_ratio": 1.0,
-    "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
-    "reason": "navigator.webdriver is true \u2014 the browser reports it is under automation control (trivial fingerprint tell, reset to false by any stealth plugin). Behavioral read: every sample is an integer pixel on a HiDPI display (dpr=2) \u2014 OS injector, not a real pointer; every sample lands on an integer pixel (OS-injected); timing matches the 'easeOutSine' tween (R^2=0.97406)"
-  },
-  {
-    "engine": "seleniumbase",
-    "stealth": true,
-    "stealth_lib": "seleniumbase-uc",
-    "strategy": "humanized",
-    "dpr": 2.0,
-    "navigator_webdriver": false,
-    "verdict": "bot",
-    "score": 0.22,
-    "subscores": {
-      "easing": 0.0368,
-      "straightness": 0.6038,
-      "submovements": 1.0,
-      "subpixel": 0.0,
-      "timing": 1.0,
-      "tremor": 0.833
-    },
-    "n_move_events": 62,
-    "directness": 0.93843,
-    "easing_r2": 0.97522,
-    "dt_cv": 0.42049,
-    "int_coord_ratio": 1.0,
-    "method": "trajectory-equivalent (no arm64 chromedriver in sandbox)",
-    "reason": "every sample is an integer pixel on a HiDPI display (dpr=2) \u2014 OS injector, not a real pointer; every sample lands on an integer pixel (OS-injected); timing matches the 'easeOutSine' tween (R^2=0.97522)"
   }
 ]

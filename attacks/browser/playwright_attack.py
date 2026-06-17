@@ -54,7 +54,13 @@ def apply_stealth(page):
 
 def run(args):
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-gpu"])
+        headless = not getattr(args, "headed", False)
+        slow_mo = getattr(args, "slowmo", 0) or 0
+        launch_args = ["--no-sandbox"]
+        if headless:
+            launch_args.append("--disable-gpu")  # GPU off only matters headless
+        browser = p.chromium.launch(headless=headless, slow_mo=slow_mo,
+                                    args=launch_args)
         context = browser.new_context(device_scale_factor=args.dpr,
                                       viewport={"width": 1200, "height": 760})
         page = context.new_page()
@@ -128,4 +134,10 @@ if __name__ == "__main__":
     ap.add_argument("--url", default="http://127.0.0.1:5001")
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--save", default="")
+    ap.add_argument("--headed", action="store_true",
+                    help="show a real browser window instead of headless")
+    ap.add_argument("--slowmo", type=int, default=0,
+                    help="ms of delay before each Playwright action, so you can "
+                         "watch the cursor (inflates timing features; does NOT "
+                         "affect the int_coord_ratio / sub-pixel tell)")
     run(ap.parse_args())

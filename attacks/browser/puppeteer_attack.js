@@ -26,6 +26,11 @@ function arg(name, def) {
 
 const STRATEGY = arg("strategy", "native");
 const STEALTH = process.argv.includes("--stealth");
+// --headed shows a real window; --slowmo N adds N ms before each devtools action
+// so you can watch the cursor. slowmo inflates timing features but does NOT
+// affect the int_coord_ratio / sub-pixel tell.
+const HEADED = process.argv.includes("--headed");
+const SLOWMO = parseInt(arg("slowmo", "0"), 10) || 0;
 const DPR = parseFloat(arg("dpr", "1"));
 const URL = arg("url", "http://127.0.0.1:5001");
 const SAVE = arg("save", "");
@@ -49,9 +54,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
   const { pptr, lib } = getPuppeteer();
+  const launchArgs = ["--no-sandbox", "--window-size=1200,760"];
+  if (!HEADED) launchArgs.push("--disable-gpu");  // GPU off only matters headless
   const browser = await pptr.launch({
-    headless: true, executablePath: EXEC,
-    args: ["--no-sandbox", "--disable-gpu", "--window-size=1200,760"],
+    headless: HEADED ? false : "new", executablePath: EXEC,
+    slowMo: SLOWMO,
+    args: launchArgs,
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 1200, height: 760, deviceScaleFactor: DPR });

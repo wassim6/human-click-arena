@@ -2,6 +2,8 @@
 
 **An open challenge: can you make a click that our detector thinks is human — when it isn't?**
 
+📊 **[Live dashboard](https://wassim6.github.io/human-click-arena/)** — every engine vs every defense layer, the rate-limit timeline, and the hall of fame. Built from real runs by `tools/build_dashboard.py`.
+
 This project is a small, transparent **behavioral bot-detection arena**. It scores a stream of
 pointer events (mouse movements + click) and returns a probability that the interaction came from a
 **real human hand** rather than from an automation tool.
