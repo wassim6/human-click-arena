@@ -213,11 +213,19 @@
     const powTxt = !p.required ? "disabled"
       : p.ok ? ("valid — " + (lastTrace.pow ? lastTrace.pow._ms + "ms / " + lastTrace.pow.difficulty + " bits" : "ok"))
              : ("rejected (" + (p.detail || "") + ")");
+    const mins = (s) => Math.round((s || 0) / 60);
+    let repTxt = "—";
+    if (r.short && r.long) {
+      repTxt = r.short.count + "/" + r.short.limit + " in " + mins(r.short.window_s) + "m · " +
+               r.long.count + "/" + r.long.limit + " in " + mins(r.long.window_s) + "m → " + r.state;
+      if (r.state === "blocked" && r.retry_after_s != null)
+        repTxt += " (retry " + Math.max(1, Math.ceil(r.retry_after_s / 60)) + "m)";
+    } else if (r.state) {
+      repTxt = r.state;
+    }
     layers.innerHTML =
       '<div class="lyr">' + dot(powColor) + '<b>proof-of-work</b><span>' + powTxt + '</span></div>' +
-      '<div class="lyr">' + dot(repColor) + '<b>rate / reputation</b><span>' +
-        (r.attempts_in_window || 0) + ' / ' + (r.hard || '?') + ' in ' + Math.round(r.window_s || 0) +
-        's → ' + (r.state || '?') + '</span></div>';
+      '<div class="lyr">' + dot(repColor) + '<b>rate / reputation</b><span>' + repTxt + '</span></div>';
 
     document.getElementById("raw").textContent =
       JSON.stringify({ result: resp, trace: lastTrace }, null, 1);

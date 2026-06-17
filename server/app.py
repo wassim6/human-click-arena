@@ -64,9 +64,10 @@ def reset_endpoint():
     return jsonify({
         "ok": True,
         "reputation": {
-            "attempts_in_window": 0, "window_s": reputation.window_s,
-            "soft": reputation.soft, "hard": reputation.hard,
             "state": "ok", "key": "(reset)",
+            "short": {"count": 0, "limit": reputation.short_limit, "window_s": reputation.short_window},
+            "long": {"count": 0, "limit": reputation.long_limit, "window_s": reputation.long_window},
+            "ban_seconds": reputation.ban_seconds,
         },
     })
 
@@ -74,13 +75,22 @@ def reset_endpoint():
 def _decide(behavioral, pow_ok, pow_provided, rep):
     """Combine the layers into allow / challenge / deny."""
     if rep["state"] == "blocked":
-        return "deny", f"rate limit: {rep['attempts_in_window']} attempts in {int(rep['window_s'])}s from this client"
+        lo = rep["long"]
+        ra = rep.get("retry_after_s")
+        retry = f"; retry in {max(1, round(ra / 60))} min" if ra else ""
+        return "deny", (f"rate limit: more than {lo['limit']} attempts in "
+                        f"{round(lo['window_s'] / 60)} min — blocked for "
+                        f"{round(rep['ban_seconds'] / 60)} min{retry}")
     if REQUIRE_POW and not pow_ok:
         return "deny", "proof-of-work missing or invalid"
     if behavioral["verdict"] == "bot":
         return "deny", "behavioral: " + behavioral["reason"]
-    if behavioral["verdict"] == "suspicious" or rep["state"] == "throttled":
-        return "challenge", "borderline — escalate (harder proof-of-work or a second factor)"
+    if rep["state"] == "throttled":
+        sh = rep["short"]
+        return "challenge", (f"rate limit: more than {sh['limit']} attempts in "
+                             f"{round(sh['window_s'] / 60)} min — solve a harder proof-of-work")
+    if behavioral["verdict"] == "suspicious":
+        return "challenge", "borderline behavioral score — solve a harder proof-of-work"
     return "allow", "passed behavioral + proof-of-work + rate check"
 
 

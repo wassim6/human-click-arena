@@ -50,6 +50,6 @@ project's answer is **not** another behavioral heuristic but the server-side lay
 - **proof-of-work** (`server/pow.py`) — makes each attempt cost CPU, so doing this at scale is expensive;
 - **rate limiting / reputation** (`server/reputation.py`) — catches the same client doing it many times.
 
-Run it through `/score` once → `allow`. Run it a 4th time within 5 minutes from the same client →
-`deny` (rate limit; default max 3 per 5 min), with the behavioral verdict still "human" the whole
-time. That contrast is the whole lesson.
+Run it through `/score` once → `allow`. Repeat from the same client and it escalates: **> 3 in 5 min
+→ `challenge`** (solve a harder proof-of-work), **> 10 in 30 min → `deny`, blocked for 1 hour** — with
+the behavioral verdict still "human" the whole time. That contrast is the whole lesson.

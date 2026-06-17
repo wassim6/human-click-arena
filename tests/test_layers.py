@@ -52,12 +52,22 @@ def test_pow_rejects_wrong_work():
 
 # ---- reputation -----------------------------------------------------------
 
-def test_reputation_escalates():
-    rep = Reputation(window_s=60, soft=3, hard=5)
-    states = [rep.assess("k")["state"] for _ in range(6)]
-    assert states[0] == "ok"
-    assert "throttled" in states
+def test_reputation_two_tiers():
+    # > 3 per short window -> throttled (challenge); > 10 per long window -> blocked
+    rep = Reputation(short_window=300, short_limit=3, long_window=1800, long_limit=10)
+    states = [rep.assess("k")["state"] for _ in range(12)]
+    assert states[:3] == ["ok", "ok", "ok"]
+    assert states[3] == "throttled"
     assert states[-1] == "blocked"
+
+
+def test_ban_persists_for_an_hour():
+    rep = Reputation(short_limit=3, long_limit=5, ban_seconds=3600)
+    for _ in range(6):
+        rep.assess("k")                 # trips the ban on the 6th (> 5)
+    a = rep.assess("k")                 # still banned afterwards
+    assert a["state"] == "blocked"
+    assert 0 < a["retry_after_s"] <= 3600
 
 
 # ---- combined decision ----------------------------------------------------
@@ -104,15 +114,16 @@ def test_challenge_escalation_endpoint():
 
 
 def test_volume_gets_denied_even_when_behavior_says_human():
-    A.reputation = Reputation(window_s=60, soft=8, hard=20)
+    A.reputation = Reputation()           # defaults: >3/5min challenge, >10/30min block
     require = A.REQUIRE_POW
-    A.REQUIRE_POW = False                 # isolate the reputation layer
+    A.REQUIRE_POW = False                  # isolate the reputation layer
     try:
         client = A.app.test_client()
         trace = _load(HUMANIZED_1X)
         decisions = [json.loads(client.post("/score", json=trace).data)["decision"]
-                     for _ in range(25)]
+                     for _ in range(15)]
     finally:
         A.REQUIRE_POW = require
-    assert decisions[0] == "allow"
-    assert decisions[-1] == "deny"        # same human-looking click, denied at volume
+    assert decisions[0] == "allow"         # human-looking click is allowed at first
+    assert "challenge" in decisions        # then escalated (> 3 in 5 min)
+    assert decisions[-1] == "deny"         # then blocked at volume (> 10 in 30 min)

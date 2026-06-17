@@ -20,3 +20,9 @@ npm-debug.log*
 # Local data / collected traces (keep the repo clean; fixtures are committed explicitly)
 data/
 *.local.json
+
+# SeleniumBase runtime artifacts
+downloaded_files/
+*.lock
+latest_logs/
+assets/
