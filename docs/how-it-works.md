@@ -73,14 +73,39 @@ accepted bypass under `bypasses/` becomes (a) a regression fixture and (b) a new
 feature extractor stays; `score()` gets replaced by a learned classifier over the same features plus
 new ones the bypasses motivate.
 
-## What a real deployment would add (out of scope here)
+## The wall: where behavioral detection ends
 
-This repo ships only the behavioral layer because it's the interesting, learnable part. A production
-anti-bot stack would combine it with signals an attacker **cannot spoof from JavaScript**:
+A **humanized** `pyautogui` run — curved Bézier path, overshoot-and-correct, irregular timing, tremor —
+is genuinely human-shaped. On a HiDPI display the integer-pixel tell still catches it, but on a **1x
+display** that signal is (correctly) disabled, because real humans also land on integers there. At that
+point there is **no robust client-side signal** that separates it from a human without blocking real
+users. And because it's a *real browser* driven by the *real OS mouse*, server-side request
+fingerprinting (TLS/JA3, HTTP/2, header order) sees genuine Chrome too — nothing to flag.
 
-- **TLS fingerprint (JA3/JA4)** — does the network handshake match the browser the JS claims to be?
-- **HTTP/2 fingerprint** and header order/casing.
-- **IP / ASN reputation** and cross-site telemetry.
-- **Proof-of-work** and challenge tokens verified server-side.
+This is not a bug to patch. It's the theoretical ceiling of judging a **single request**. The frozen
+reference bypass is `bypasses/pyautogui-humanized-1x.md`.
 
-Behavioral scoring is one input to a risk score, never a standalone gate.
+## Past the wall: change the economics (implemented here)
+
+Once you can't tell bot from human on one request, you stop trying and instead make the *attack* expensive:
+
+- **Proof-of-work** (`server/pow.py`, `client/pow.js`) — the client must find a nonce whose
+  SHA-256 has N leading zero bits. One click is a few thousand hashes (sub-second); a million clicks
+  cost a million times that. Challenges are HMAC-signed so the server verifies them statelessly, with
+  single-use salts against replay. (Production: swap SHA-256 for memory-hard Argon2id/scrypt.)
+- **Rate limiting + reputation** (`server/reputation.py`) — a sliding window per client key. The same
+  client doing a human-looking click 30 times in a minute escalates `ok → throttled → blocked`, while
+  the behavioral verdict stays "human" the whole time. *That* is the signal: volume, not shape.
+
+`/score` combines all of it into one decision — `allow` / `challenge` / `deny`.
+
+## What a real deployment would still add (out of scope here)
+
+Signals an attacker **cannot spoof from JavaScript**, plus shared infrastructure:
+
+- **TLS fingerprint (JA3/JA4)** and **HTTP/2 fingerprint** / header order — though note these see a
+  *genuine* browser when the attack is pyautogui-on-real-Chrome, so they don't flag it either.
+- **IP / ASN reputation** and **cross-site telemetry** (what a Cloudflare-scale operator has).
+- A shared, Redis-backed rate store instead of this in-memory stub.
+
+Behavioral scoring is one input to a layered decision, never a standalone gate.

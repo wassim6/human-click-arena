@@ -74,6 +74,34 @@ Full write-up: [docs/how-it-works.md](docs/how-it-works.md).
 
 ---
 
+## What the arena can and can't catch
+
+`/score` returns one **decision** — `allow` / `challenge` / `deny` — from three layers. Be honest about
+what each one can do:
+
+| Attack | Behavioral + sub-pixel | Proof-of-work | Rate / reputation | Net result |
+|---|---|---|---|---|
+| `dispatchEvent()` / pure JS click | caught (`isTrusted`-free, no motion) | — | — | **deny** |
+| Selenium / Puppeteer (framework attached) | caught (framework + shape) | costs CPU | — | **deny** |
+| naive pyautogui (straight + easing) | **caught** (straightness, easing, integers) | costs CPU | — | **deny** |
+| bezier pyautogui (curved, regular timing) | **caught** (timing, integers, no tremor) | costs CPU | — | **deny** |
+| humanized pyautogui on **HiDPI** | **caught** (integer pixels on dpr > 1) | costs CPU | — | **deny** |
+| humanized pyautogui on **1x** | **passes as human** (the wall) | costs CPU per try | **caught at volume** | allow once, **deny at scale** |
+| replay of a real recorded human trace | **passes** (it _is_ human motion) | costs CPU per try | **caught at volume** | allow once, **deny at scale** |
+
+The takeaway: **no single-request signal — client or server — separates a humanized real-browser click
+from a human.** Past that wall you stop trying to tell bot from human and instead change the economics:
+proof-of-work makes each attempt cost CPU, and rate/reputation catches the same client repeating it.
+That is exactly why real systems (Cloudflare, etc.) lean on reputation, proof-of-work, and cross-site
+telemetry rather than mouse curves alone. The reference bypass that defines this wall is frozen in
+[`bypasses/pyautogui-humanized-1x.md`](bypasses/pyautogui-humanized-1x.md).
+
+What this repo deliberately does **not** ship (a real deployment would): TLS/JA3-JA4 and HTTP/2
+fingerprints, IP/ASN reputation feeds, and a shared (Redis-backed) rate store. Note even those wouldn't
+flag a humanized click from a genuine browser on a clean residential IP — only its *volume over time*.
+
+---
+
 ## Quick start
 
 ```bash
@@ -82,7 +110,12 @@ cd server
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python app.py
-# then open http://127.0.0.1:5000  → move + click the target, watch the live score
+# then open http://127.0.0.1:5000  → click the target; the page solves a proof-of-work
+# and shows the layered decision (behavioral + proof-of-work + rate/reputation)
+
+# /score requires a proof-of-work by default. To poke it with raw behavioral only:
+#   REQUIRE_POW=0 python app.py
+# The stdin CLI below scores behavior directly and never needs one.
 
 # 2. Generate a fake PyAutoGUI trace and score it from the CLI
 python ../tools/generate_pyautogui_trace.py --tween easeInOutQuad | python score_cli.py
@@ -117,12 +150,16 @@ a code problem.
 human-click-arena/
 ├── client/
 │   ├── collector.js        # captures pointer events into a trace
-│   └── index.html          # interactive demo + live score + "simulate bot" button
+│   ├── sha256.js           # compact SHA-256 (for the proof-of-work solver)
+│   ├── pow.js              # proof-of-work: fetch challenge, grind a nonce
+│   └── index.html          # interactive demo + live layered decision
 ├── server/
-│   ├── app.py              # Flask: serves the demo, exposes POST /score
+│   ├── app.py              # Flask: serves the demo, POST /score, GET /pow/challenge
 │   ├── features.py         # trajectory feature extraction
 │   ├── easing.py           # PyAutoGUI tween functions + fit/matching
-│   ├── scorer.py           # combines signals → score 0..1 + breakdown
+│   ├── scorer.py           # behavioral + sub-pixel → score 0..1 + breakdown
+│   ├── pow.py              # stateless proof-of-work challenge / verify
+│   ├── reputation.py       # sliding-window rate limit + reputation
 │   ├── score_cli.py        # score a trace from stdin (for piping)
 │   └── requirements.txt
 ├── tools/

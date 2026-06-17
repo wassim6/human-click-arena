@@ -32,6 +32,12 @@ and it tells us the behavioral layer alone isn't enough (it isn't; that's the po
 
 ## Hall of fame
 
-| Handle | Technique | Score achieved | Fixed in |
+| Handle | Technique | Behavioral score | Status |
 |---|---|---|---|
-| _(be the first)_ | | | |
+| wass | [humanized pyautogui on a 1x display](pyautogui-humanized-1x.md) | 0.68 / human | won't fix (client-side ceiling) → server layer |
+| _(you?)_ | | | |
+
+The reference bypass above is the boundary of behavioral detection. The interesting open challenges
+now are: beat it on a **HiDPI** display (defeat the integer-pixel signal — e.g. inject sub-pixel
+coordinates), or defeat the **server** layers (cheap proof-of-work solving, or evading the rate limit
+with rotated fingerprints).

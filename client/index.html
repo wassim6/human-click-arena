@@ -34,8 +34,15 @@
   #target:active { transform: scale(.92); }
   #hint { position: absolute; left: 14px; bottom: 12px; color: var(--muted); font-size: 13px; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .verdict { font-size: 28px; font-weight: 700; margin: 2px 0 2px; }
-  .verdict small { font-size: 13px; font-weight: 500; color: var(--muted); display: block; }
+  .decision { font-size: 26px; font-weight: 800; letter-spacing: .02em; margin: 0 0 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .decision small { font-size: 12px; font-weight: 500; color: var(--muted); display: block; margin-top: 2px; }
+  .verdict { font-size: 18px; font-weight: 700; margin: 2px 0 2px; }
+  .verdict small { font-size: 12px; font-weight: 500; color: var(--muted); display: block; }
+  .layers { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; font-size: 13px; }
+  .layers .lyr { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+  .layers .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+  .layers .lyr b { font-weight: 600; min-width: 92px; }
+  .layers .lyr span { color: var(--muted); }
   .meter { height: 10px; border-radius: 6px; background: #21262d; overflow: hidden; margin: 10px 0 4px; }
   .meter > span { display: block; height: 100%; width: 0; transition: width .3s ease; }
   .bar-row { display: grid; grid-template-columns: 120px 1fr 40px; align-items: center; gap: 8px; margin: 7px 0; font-size: 13px; }
@@ -72,11 +79,14 @@
   </div>
 
   <aside class="panel">
-    <div class="verdict" id="verdict">—<small>score appears after you click</small></div>
-    <div class="meter"><span id="scoreBar"></span></div>
+    <div class="decision" id="decision">—<small>click the target to run all layers</small></div>
 
+    <div class="verdict" id="verdict">—<small>behavioral score</small></div>
+    <div class="meter"><span id="scoreBar"></span></div>
     <div id="bars"></div>
     <div class="reason" id="reason"></div>
+
+    <div class="layers" id="layers"></div>
 
     <div class="row">
       <button id="simBot" class="ghost">Simulate bot (PyAutoGUI-style)</button>
@@ -86,6 +96,8 @@
   </aside>
 </main>
 
+<script src="sha256.js"></script>
+<script src="pow.js"></script>
 <script src="collector.js"></script>
 <script>
 (function () {
@@ -114,23 +126,48 @@
   }
 
   const COLORS = { straightness: "#3fb950", easing: "#f85149", timing: "#d29922",
-                   submovements: "#a371f7", tremor: "#58a6ff" };
+                   submovements: "#a371f7", tremor: "#58a6ff", subpixel: "#ff9bce" };
+  const DCOLOR = { allow: "var(--good)", challenge: "var(--warn)", deny: "var(--bad)" };
 
-  function render(result) {
-    lastResult = result;
-    const pct = Math.round(result.score * 100);
+  // Solve a proof-of-work, attach it + meta, POST the trace, return the layered result.
+  async function submit(trace) {
+    if (!trace.meta) trace.meta = { dpr: window.devicePixelRatio || 1, ua: navigator.userAgent };
+    try {
+      trace.pow = await pow.obtain();          // costs the client a few thousand hashes
+    } catch (e) { /* server may have PoW disabled; submit without it */ }
+    const res = await fetch("/score", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(trace),
+    });
+    return res.json();
+  }
+
+  function dot(color) { return '<span class="dot" style="background:' + color + '"></span>'; }
+
+  function render(resp) {
+    lastResult = resp;
+    const b = resp.behavioral || resp;          // tolerate raw behavioral too
+
+    // top-line decision
+    const dec = document.getElementById("decision");
+    const dc = DCOLOR[resp.decision] || "var(--muted)";
+    dec.innerHTML = (resp.decision || "—").toUpperCase() +
+      "<small>" + (resp.reason || "") + "</small>";
+    dec.style.color = dc;
+
+    // behavioral score + bars
+    const pct = Math.round((b.score || 0) * 100);
     const v = document.getElementById("verdict");
-    const color = result.verdict === "human" ? "var(--good)"
-                : result.verdict === "bot" ? "var(--bad)" : "var(--warn)";
-    v.innerHTML = result.verdict.toUpperCase() +
+    const vc = b.verdict === "human" ? "var(--good)" : b.verdict === "bot" ? "var(--bad)" : "var(--warn)";
+    v.innerHTML = "behavioral: " + (b.verdict || "—").toUpperCase() +
       "<small>human-likeness " + pct + " / 100</small>";
-    v.style.color = color;
+    v.style.color = vc;
     const sb = document.getElementById("scoreBar");
-    sb.style.width = pct + "%"; sb.style.background = color;
+    sb.style.width = pct + "%"; sb.style.background = vc;
 
     const bars = document.getElementById("bars");
     bars.innerHTML = "";
-    const sub = result.subscores || {};
+    const sub = b.subscores || {};
     Object.keys(sub).forEach((k) => {
       const p = Math.round(sub[k] * 100);
       const row = document.createElement("div");
@@ -140,9 +177,24 @@
         '<span class="pct">' + p + '</span>';
       bars.appendChild(row);
     });
-    document.getElementById("reason").textContent = result.reason || "";
+    document.getElementById("reason").textContent = b.reason || "";
+
+    // other layers
+    const layers = document.getElementById("layers");
+    const p = resp.pow || {}, r = resp.reputation || {};
+    const powColor = !p.required ? "var(--muted)" : p.ok ? "var(--good)" : "var(--bad)";
+    const repColor = r.state === "ok" ? "var(--good)" : r.state === "throttled" ? "var(--warn)" : "var(--bad)";
+    const powTxt = !p.required ? "disabled"
+      : p.ok ? ("valid — " + (lastTrace.pow ? lastTrace.pow._ms + "ms / " + lastTrace.pow.difficulty + " bits" : "ok"))
+             : ("rejected (" + (p.detail || "") + ")");
+    layers.innerHTML =
+      '<div class="lyr">' + dot(powColor) + '<b>proof-of-work</b><span>' + powTxt + '</span></div>' +
+      '<div class="lyr">' + dot(repColor) + '<b>rate / reputation</b><span>' +
+        (r.attempts_in_window || 0) + ' / ' + (r.hard || '?') + ' in ' + Math.round(r.window_s || 0) +
+        's → ' + (r.state || '?') + '</span></div>';
+
     document.getElementById("raw").textContent =
-      JSON.stringify({ result: result, trace: lastTrace }, null, 1);
+      JSON.stringify({ result: resp, trace: lastTrace }, null, 1);
   }
 
   // Real human click: when the target is pressed, send the recorded trace.
@@ -151,11 +203,10 @@
     collector.detach();
     lastTrace = collector.trace();
     try {
-      const result = await collector.score("/score");
-      render(result);
-    } catch (e) {
+      render(await submit(lastTrace));
+    } catch (err) {
       document.getElementById("reason").textContent =
-        "Could not reach /score — is the Flask server running? (" + e + ")";
+        "Could not reach /score — is the Flask server running? (" + err + ")";
     }
     setTimeout(startRound, 400);
   });
@@ -182,16 +233,12 @@
     }
     events.push({ type: "down", x: t.x, y: t.y, t: dur + 5 });
     events.push({ type: "up", x: t.x, y: t.y, t: dur + 65 });  // constant dwell
-    return { events: events, target: t };
+    return { events: events, target: t, meta: { dpr: window.devicePixelRatio || 1, ua: navigator.userAgent } };
   }
 
   document.getElementById("simBot").addEventListener("click", async () => {
     lastTrace = botTrace();
-    const res = await fetch("/score", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(lastTrace),
-    });
-    render(await res.json());
+    render(await submit(lastTrace));
   });
 
   document.getElementById("copyTrace").addEventListener("click", () => {

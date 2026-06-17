@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>hca attack harness</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0e1116; cursor: crosshair; }
+  #pad { position: fixed; inset: 0; }
+  #target {
+    position: absolute; width: 56px; height: 56px; border-radius: 50%;
+    background: #1f6feb; border: 2px solid #79c0ff; display: grid; place-items: center;
+    color: #fff; font: 600 12px system-ui; user-select: none;
+  }
+</style>
+</head>
+<body>
+<div id="pad"><div id="target">CLICK</div></div>
+<script src="/collector.js"></script>
+<script>
+(function () {
+  "use strict";
+  var pad = document.getElementById("pad");
+  var target = document.getElementById("target");
+  var col = new TraceCollector();
+
+  // Place the target's CENTER at viewport coords (cx, cy) and (re)attach a
+  // fresh collector. Returns the precise target spec the scorer will receive.
+  window.HCA = {
+    setup: function (cx, cy) {
+      target.style.left = (cx - 28) + "px";
+      target.style.top = (cy - 28) + "px";
+      var r = target.getBoundingClientRect();
+      var spec = { x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2 };
+      col.attach(pad, spec);
+      return spec;
+    },
+    // Ensure the release is recorded even if listeners detached during bubbling.
+    mark: function (type, x, y) { col.mark(type, x, y); return true; },
+    trace: function () { col.detach(); return col.trace(); },
+    // Convenience: POST current trace to /score and return the verdict.
+    score: async function () {
+      col.detach();
+      var res = await fetch("/score", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(col.trace()),
+      });
+      return res.json();
+    },
+    targetRect: function () {
+      var r = target.getBoundingClientRect();
+      return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, r: r.width / 2 };
+    },
+  };
+  window.__HCA_READY = true;
+})();
+</script>
+</body>
+</html>
