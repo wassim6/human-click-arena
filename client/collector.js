@@ -10,6 +10,70 @@
 (function (global) {
   "use strict";
 
+  // --- environment-inconsistency probe (BotD-style) -----------------------
+  // Headless Chrome + automation leave environment tells that humanized
+  // movement can't hide. Stealth plugins patch many of them — imperfectly — so
+  // this is higher false-positive risk than the webdriver/cdp flags and is
+  // treated as a *soft* signal server-side. Run once at load (some checks are
+  // async) and cache; trace() reads the cached result.
+  var _env = { anomalies: [], details: {}, ready: false };
+
+  function _webglRenderer() {
+    try {
+      if (typeof document === "undefined") return null;
+      var c = document.createElement("canvas");
+      var gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+      if (!gl) return null;
+      var ext = gl.getExtension("WEBGL_debug_renderer_info");
+      return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
+                 : (gl.getParameter(gl.RENDERER) || null);
+    } catch (_) { return null; }
+  }
+
+  function _permMismatch() {
+    try {
+      if (typeof navigator === "undefined" || !navigator.permissions ||
+          !navigator.permissions.query || typeof Notification === "undefined")
+        return Promise.resolve(false);
+      return navigator.permissions.query({ name: "notifications" })
+        .then(function (s) {
+          // Classic headless tell: the two APIs disagree.
+          return Notification.permission === "denied" && s.state === "prompt";
+        }).catch(function () { return false; });
+    } catch (_) { return Promise.resolve(false); }
+  }
+
+  function _initEnv() {
+    try {
+      var a = [], d = {}, nav = (typeof navigator !== "undefined") ? navigator : {};
+      var ua = nav.userAgent || "";
+      var r = _webglRenderer(); d.webglRenderer = r;
+      if (r && /swiftshader|llvmpipe|\bmesa\b|software|microsoft basic/i.test(r))
+        a.push("webgl_software_renderer");
+      d.headlessUA = /headlesschrome/i.test(ua);
+      if (d.headlessUA) a.push("headless_ua");
+      d.plugins = nav.plugins ? nav.plugins.length : 0;
+      if (d.plugins === 0) a.push("no_plugins");
+      d.languages = nav.languages ? nav.languages.length : 0;
+      if (d.languages === 0) a.push("no_languages");
+      d.hasChrome = typeof global.chrome !== "undefined" && !!global.chrome;
+      if (!d.hasChrome && /chrome|chromium/i.test(ua)) a.push("missing_window_chrome");
+      d.hardwareConcurrency = nav.hardwareConcurrency || 0;
+      d.outerW = (typeof window !== "undefined") ? window.outerWidth : 0;
+      d.outerH = (typeof window !== "undefined") ? window.outerHeight : 0;
+      if (d.outerW === 0 || d.outerH === 0) a.push("zero_outer_window");
+      _env.details = d;
+      _env.anomalies = a;
+      _permMismatch().then(function (m) {
+        _env.details.permMismatch = m;
+        if (m && _env.anomalies.indexOf("permissions_mismatch") === -1)
+          _env.anomalies.push("permissions_mismatch");
+        _env.ready = true;
+      });
+    } catch (_) { _env.ready = true; }
+  }
+  _initEnv();
+
   class TraceCollector {
     constructor() {
       this.reset();
@@ -135,6 +199,9 @@
               return hits.slice(0, 20);
             } catch (_) { return []; }
           })(),
+          // Environment-inconsistency anomalies (headless/automation tells).
+          // Soft signal: higher false-positive risk than the flags above.
+          env: { anomalies: _env.anomalies.slice(), details: _env.details },
         },
       };
     }

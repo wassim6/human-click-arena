@@ -215,6 +215,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     <a class="btn primary" href="#top">🏆 Top attacks</a>
     <a class="btn" href="#caught">❌ Who got caught</a>
     <a class="btn" href="#defenses">🛡️ Defenses</a>
+    <a class="btn" href="captcha-comparison.html">⚖️ vs reCAPTCHA &amp; co.</a>
     <a class="btn" id="repolink" href="#">GitHub ↗</a>
   </div>
 </header>

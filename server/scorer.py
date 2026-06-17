@@ -57,6 +57,14 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     # __webdriver_*). Non-empty => a non-stealth Selenium. UC mode erases them.
     driver_props = meta.get("driverProps") or []
     driver_props_flag = isinstance(driver_props, list) and len(driver_props) > 0
+    # Environment-inconsistency anomalies (headless/automation tells). SOFT:
+    # higher false-positive risk, so only the decisive ones hard-gate; several
+    # soft ones together pull the score to "suspicious".
+    env = meta.get("env") or {}
+    env_anoms = env.get("anomalies") or []
+    ENV_DECISIVE = {"permissions_mismatch", "headless_ua"}
+    env_decisive = any(a in ENV_DECISIVE for a in env_anoms)
+    env_soft = len(env_anoms) >= 3
     gesture = final_gesture(all_events)
     f = extract({"events": gesture, "target": trace.get("target")})
     f["n_total_events"] = len(all_events)
@@ -65,9 +73,11 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     f["navigator_webdriver"] = (bool(wd) if wd is not None else None)
     f["cdp_runtime"] = (bool(cdp) if cdp is not None else None)
     f["driver_props"] = list(driver_props) if driver_props_flag else []
+    f["env_anomalies"] = list(env_anoms)
     fingerprint = {"navigator_webdriver": f["navigator_webdriver"],
                    "cdp_runtime": f["cdp_runtime"],
-                   "driver_props": f["driver_props"]}
+                   "driver_props": f["driver_props"],
+                   "env_anomalies": f["env_anomalies"]}
 
     # Hard gate: a click with no preceding movement is the loudest bot signal.
     if not f["has_movement"]:
@@ -131,10 +141,18 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     if hidpi_integer:
         combined = min(combined, 0.22)
 
+    # Soft environment signal: several headless tells at once cap the score to
+    # "suspicious" (the decisive ones hard-gate below). Kept soft because a real
+    # user without a GPU / with a privacy browser can trip one or two.
+    if env_soft and not env_decisive:
+        combined = min(combined, 0.28)
+
     combined = round(float(combined), 4)
     verdict = "human" if combined >= 0.5 else ("suspicious" if combined >= 0.3 else "bot")
 
     reason = _explain(verdict, subscores, f)
+    if env_soft and not env_decisive:
+        reason = (f"environment looks automated ({', '.join(env_anoms[:3])}); " + reason)
     if hidpi_integer:
         reason = (f"every sample is an integer pixel on a HiDPI display (dpr={dpr:g}) — "
                   f"OS injector, not a real pointer; " + reason)
@@ -147,7 +165,7 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
     # defeat (any stealth plugin resets it to false), so it only ever catches
     # naive automation — but that catch is free. We still expose the behavioral
     # breakdown so the arena keeps teaching the harder, unspoofable layer.
-    if webdriver_flag or cdp_flag or driver_props_flag:
+    if webdriver_flag or cdp_flag or driver_props_flag or env_decisive:
         combined = 0.0
         verdict = "bot"
         tells = []
@@ -157,6 +175,9 @@ def score(trace: dict[str, Any]) -> dict[str, Any]:
             tells.append("a CDP Runtime client is attached (Puppeteer/Playwright/chromedriver)")
         if driver_props_flag:
             tells.append("chromedriver/selenium globals present (" + ", ".join(driver_props[:3]) + ")")
+        if env_decisive:
+            decisive = [a for a in env_anoms if a in ENV_DECISIVE]
+            tells.append("a decisive headless tell (" + ", ".join(decisive) + ")")
         reason = (" and ".join(tells) + " — the browser is under automation control "
                   "(fingerprint tells, all patchable). Behavioral read: " + reason)
 

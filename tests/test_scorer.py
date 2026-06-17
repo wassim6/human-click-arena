@@ -139,6 +139,36 @@ def test_empty_driver_props_does_not_penalize():
     assert score(trace)["score"] >= 0.5
 
 
+def test_env_decisive_headless_tell_is_caught():
+    """A decisive environment anomaly (HeadlessChrome UA or permissions mismatch)
+    hard-gates to bot — catches *non-stealth* headless. Stealth plugins spoof
+    these surfaces (measured), so the stealthed engines report no anomalies."""
+    trace = human.generate((90, 410), (600, 250), seed=0)
+    trace.setdefault("meta", {})["env"] = {"anomalies": ["headless_ua"], "details": {}}
+    result = score(trace)
+    assert result["verdict"] == "bot"
+    assert result["score"] == 0.0
+    assert "headless" in result["reason"]
+
+
+def test_env_soft_anomalies_cap_to_suspicious_not_hard_bot():
+    """Several non-decisive anomalies are a SOFT signal (FP risk): they pull the
+    score down to suspicious, not a hard 0 — a real GPU-less/privacy browser
+    might trip a couple."""
+    trace = human.generate((90, 410), (600, 250), seed=0)
+    trace.setdefault("meta", {})["env"] = {
+        "anomalies": ["no_plugins", "no_languages", "missing_window_chrome"], "details": {}}
+    result = score(trace)
+    assert result["verdict"] != "human"
+    assert 0.0 < result["score"] <= 0.3
+
+
+def test_env_no_anomalies_does_not_penalize():
+    trace = human.generate((90, 410), (600, 250), seed=1)
+    trace.setdefault("meta", {})["env"] = {"anomalies": [], "details": {}}
+    assert score(trace)["score"] >= 0.5
+
+
 def test_navigator_webdriver_false_or_absent_does_not_penalize():
     """Zero false positives: a real human AND a stealthed bot both report
     webdriver=false, so the flag must never lower a human-shaped trace. Only

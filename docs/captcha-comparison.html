@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>human-click-arena — how it compares to reCAPTCHA, Turnstile & hCaptcha</title>
+<style>
+  :root{
+    --bg:#0f1320;--panel:#171c2b;--panel2:#10131f;--line:#262d3f;--ink:#eef2f8;
+    --muted:#9aa6bd;--accent:#4f8cff;--good:#46d17e;--bad:#ff6b6b;--warn:#f0b429;
+    --gold:#ffd35c;--silver:#cdd6e6;--bronze:#e3a06b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 50% -200px,#1b2235,var(--bg));
+    color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:960px;margin:0 auto;padding:0 22px}
+  header{text-align:center;padding:54px 22px 18px}
+  h1{margin:0;font-size:32px;letter-spacing:-.5px}
+  header .tag{display:inline-block;margin:14px 0 0;color:var(--muted);font-size:17px;max-width:64ch}
+  header .links{margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .btn{background:var(--panel);border:1px solid var(--line);border-radius:999px;
+    padding:7px 16px;color:var(--ink);font-weight:600;font-size:14px}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  section{margin:40px 0}
+  h2{font-size:23px;margin:0 0 6px;text-align:center}
+  .lead{color:var(--muted);text-align:center;margin:0 auto 22px;max-width:66ch}
+  .prose{max-width:72ch;margin:0 auto}
+  .prose p{margin:0 0 14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+  .tldr{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:14px;padding:18px 22px;max-width:72ch;margin:0 auto}
+  .tldr b{color:var(--ink)}
+  .layers{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media(max-width:760px){.layers{grid-template-columns:1fr}}
+  .layer{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .layer .ic{font-size:22px} .layer h3{margin:6px 0 4px;font-size:16px}
+  .layer p{margin:0;color:var(--muted);font-size:13.5px}
+  .tier{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:12px 0}
+  .tier h3{margin:0 0 8px;font-size:16px;display:flex;gap:9px;align-items:center}
+  .tier .pri{margin-left:auto;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted)}
+  .tier ol{margin:0;padding-left:20px} .tier li{margin:6px 0;color:var(--muted);font-size:14px}
+  .tier li b{color:var(--ink)}
+  .tier.t1{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:14px 0}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase}
+  td.c,th.c{text-align:center}
+  .yes{color:var(--good);font-weight:700} .partial{color:var(--warn);font-weight:700} .no{color:var(--bad);font-weight:700}
+  .legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-top:6px}
+  .muted{color:var(--muted)}
+  .note{color:var(--muted);font-size:12.5px;font-style:italic}
+  code{color:#9ec5ff;background:#0b0f1a;padding:1px 5px;border-radius:5px;font-size:13px}
+  footer{text-align:center;color:var(--muted);font-size:13px;padding:30px 22px;border-top:1px solid var(--line);margin-top:40px}
+  footer a{margin:0 6px}
+  ul.src{max-width:72ch;margin:0 auto;padding-left:20px} ul.src li{margin:5px 0;font-size:13.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚖️ How the arena compares to the real ones</h1>
+  <div class="tag">Where this behavioral detector stands next to <b>reCAPTCHA, Cloudflare Turnstile
+    &amp; hCaptcha</b> — signal by signal — and a concrete roadmap to close the gap.</div>
+  <div class="links">
+    <a class="btn primary" href="index.html">← Back to dashboard</a>
+    <a class="btn" href="#matrix">📊 Signal matrix</a>
+    <a class="btn" href="#roadmap">🧭 Roadmap</a>
+    <a class="btn" href="https://github.com/wassim6/human-click-arena">GitHub ↗</a>
+  </div>
+</header>
+<div class="wrap">
+
+  <section>
+    <div class="tldr">
+      <p style="margin:0 0 10px"><b>TL;DR.</b> The arena is a strong, transparent
+        <b>behavioral-shape analyzer</b> with a couple of cheap fingerprint gates and two
+        rate/cost layers. Its movement analysis is genuinely good — conceptually the
+        <em>same</em> sub-signal the commercial systems feed into their models, and it's even ahead
+        on the sub-pixel tell.</p>
+      <p style="margin:0">The gap isn't mouse math — it's <b>breadth &amp; unspoofability</b>:
+        the big systems score <b>network-layer signals the client can't forge</b> (TLS/JA3-JA4,
+        HTTP/2 fingerprint, IP/ASN reputation), aggregate <b>whole-session + device</b> behavior,
+        and run <b>adversarial ML</b>. Adding the unspoofable server-side tier — not more curves —
+        is what stops a well-humanized stealth browser.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What the arena measures today</h2>
+    <p class="lead">Read straight from <code>server/</code>. Six behavioral sub-signals, a few
+      client-reported fingerprint gates, and two volume/cost layers.</p>
+    <table>
+      <thead><tr><th>Layer</th><th>Signal</th><th>Catches</th><th class="c">Spoofable?</th></tr></thead>
+      <tbody>
+        <tr><td>Behavioral</td><td>straightness · easing R² · timing CV · sub-movements · tremor · sub-pixel</td><td>generated / tweened motion, OS injectors</td><td class="c partial">replayable</td></tr>
+        <tr><td>Fingerprint</td><td><code>navigator.webdriver</code> · CDP · driver globals</td><td>naive automation only</td><td class="c no">yes (stealth resets it)</td></tr>
+        <tr><td>Sub-pixel gate</td><td><code>int_coord_ratio</code> on HiDPI</td><td>integer-only W3C/OS coordinates</td><td class="c yes">hard on HiDPI</td></tr>
+        <tr><td>Proof-of-work</td><td>Argon2id, memory-hard</td><td>volume / scale (cost, not identity)</td><td class="c yes">no (it's a cost)</td></tr>
+        <tr><td>Rate / reputation</td><td>counters on <code>IP+UA+dpr</code></td><td>repeat offenders</td><td class="c partial">proxies dodge</td></tr>
+        <tr><td>Puzzle</td><td>slide-to-fit drag</td><td>borderline cases</td><td class="c partial">solvable</td></tr>
+      </tbody>
+    </table>
+    <p class="note">The three fingerprint flags are <b>client-reported</b> and reset to
+      <code>false</code> by any stealth plugin — which is exactly why the stealth Puppeteer/Playwright
+      runs walk through them on the leaderboard.</p>
+  </section>
+
+  <section>
+    <h2>How the commercial systems score</h2>
+    <div class="layers">
+      <div class="layer">
+        <div class="ic">🟦</div>
+        <h3>Google reCAPTCHA</h3>
+        <p><b>v3</b> returns a 0–1 risk score per action, no challenge. Mix: browser integrity /
+          headless traits, behavior (mouse, scroll, typing, tab-switch), <b>IP+ASN reputation</b>,
+          history tied to the session/browser/token, and <b>Google cookie trust</b> (a cookied
+          session starts higher). <b>v2</b> weighs the same before you ever click the box.
+          Enterprise adds reason codes &amp; account-defender risk.</p>
+      </div>
+      <div class="layer">
+        <div class="ic">🟧</div>
+        <h3>Cloudflare Turnstile</h3>
+        <p>Non-interactive. Runs background JS micro-challenges — <b>proof-of-work</b>,
+          proof-of-space, browser-API probing (canvas/WebGL/audio/navigator), human signals
+          (mouse timing, focus, jitter) — into <b>distributed ML</b> with adaptive difficulty.
+          Can use <b>Private Access Tokens</b>: hardware attestation that fingerprinting can't fake
+          and stealth can't patch. Rides Cloudflare's network-wide threat intel.</p>
+      </div>
+      <div class="layer">
+        <div class="ic">🟨</div>
+        <h3>hCaptcha</h3>
+        <p>Risk score 0–1 from <b>privacy-preserving ML</b> over "thousands of data points":
+          <b>device fingerprinting</b>, behavioral patterns, and intent analysis, with explicit
+          <b>multi-accounting / abuse-at-scale</b> detection. Enterprise scores <em>abuse</em>,
+          not just humanity; falls back to image tasks and runs proof-of-work underneath.</p>
+      </div>
+      <div class="layer">
+        <div class="ic">🖱️</div>
+        <h3>human-click-arena</h3>
+        <p>A <b>transparent weighted heuristic</b> over one gesture, one request: movement shape +
+          sub-pixel + the spoofable fingerprint flags + PoW + a crude IP rate limit. Built to be
+          readable and beatable — the opposite of a black box, and the point of the project.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="matrix">
+    <h2>Signal by signal</h2>
+    <div class="legend"><span class="yes">✅ scored</span><span class="partial">⚠️ collected but spoofable / weak</span><span class="no">❌ absent</span></div>
+    <table>
+      <thead><tr><th>Signal class</th><th class="c">Arena</th><th class="c">reCAPTCHA</th><th class="c">Turnstile</th><th class="c">hCaptcha</th></tr></thead>
+      <tbody>
+        <tr><td>Pointer-movement shape (curve/easing/tremor)</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td>Sub-pixel / HiDPI coordinate tell</td><td class="c yes">✅</td><td class="c">~</td><td class="c">~</td><td class="c">~</td></tr>
+        <tr><td>Timing irregularity</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td>Whole-session behavior (scroll, focus, keystroke)</td><td class="c no">❌</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td>Cross-session history / reputation</td><td class="c no">❌</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td><code>navigator.webdriver</code> / CDP / driver globals</td><td class="c partial">⚠️</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td>Headless / stealth-patch detection</td><td class="c no">❌</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td>Device fingerprint (canvas/WebGL/audio/fonts)</td><td class="c no">❌</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td><b>TLS fingerprint (JA3/JA4)</b></td><td class="c no">❌</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td><b>HTTP/2 fingerprint + header order</b></td><td class="c no">❌</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td><b>IP / ASN reputation, datacenter vs residential</b></td><td class="c partial">⚠️</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td>Proof-of-work / proof-of-space</td><td class="c yes">✅</td><td class="c">—</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td>Device attestation / Private Access Tokens</td><td class="c no">❌</td><td class="c">~</td><td class="c yes">✅</td><td class="c">~</td></tr>
+        <tr><td>Signed, single-use, action-bound token</td><td class="c partial">⚠️</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+        <tr><td>ML risk model (adversarial, retrained)</td><td class="c no">❌</td><td class="c yes">✅</td><td class="c yes">✅</td><td class="c yes">✅</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Competitive on movement, ahead on the sub-pixel tell — but missing the entire
+      network/device tier, and trusting automation flags that aren't trustworthy.</p>
+  </section>
+
+  <section>
+    <h2>The tier that actually stops the "winners"</h2>
+    <div class="prose">
+      <p>A humanized real-browser click on a 1× display is indistinguishable from a human
+        <em>at the event level</em> — the README's honest ceiling. What still separates them lives
+        <b>below JavaScript</b>, where the client can't lie:</p>
+      <p><b>TLS fingerprint (JA3/JA4).</b> The ClientHello is set by the TLS stack, not your JS. A
+        stealth browser that <em>claims</em> Chrome but presents a non-Chrome handshake — or pairs a
+        Chrome JA3 with a Firefox UA — is flagged instantly. Proxies hide the IP, not the handshake.</p>
+      <p><b>HTTP/2 fingerprint.</b> Frame ordering, SETTINGS, header casing. "Chrome TLS over
+        HTTP/1.1" screams automation tool.</p>
+      <p><b>IP / ASN reputation.</b> Datacenter ASN, known proxy/VPN ranges, threat-intel feeds.
+        Residential proxies dodge reputation but still carry the wrong TLS/HTTP fingerprint.</p>
+      <p><b>Attestation (PAT).</b> Hardware-backed proof of a genuine device. Stealth can patch a
+        flag; it cannot mint an Apple attestation. None of these need a better mouse model — and
+        none fall to ghost-cursor or playwright-stealth.</p>
+    </div>
+  </section>
+
+  <section id="roadmap">
+    <h2>🧭 Roadmap to close the gap</h2>
+    <p class="lead">Prioritized by impact × unspoofability ÷ effort.</p>
+
+    <div class="tier t1">
+      <h3>🥇 Tier 1 — unspoofable server-side signals <span class="pri">highest leverage</span></h3>
+      <ol>
+        <li><b>TLS JA3/JA4 + UA-consistency check.</b> Terminate TLS at a proxy that exposes the
+          ClientHello (nginx JA3 module / HAProxy / a small Go front) and pass <code>X-JA4</code>
+          into Flask. JA3 browser family ≠ UA family → hard fail. <span class="note">A plain
+          Flask/WSGI app can't see the raw ClientHello — this needs a TLS-terminating front end.</span></li>
+        <li><b>HTTP/2 fingerprint + header order/casing</b> captured at the same front end.</li>
+        <li><b>IP/ASN reputation.</b> Cheapest immediate win: ship a datacenter-ASN list + proxy/VPN
+          feed; flag non-residential origins. Replaces the raw in-memory counter with a real input.</li>
+      </ol>
+    </div>
+
+    <div class="tier">
+      <h3>🥈 Tier 2 — turn the client flags you already collect into real tells</h3>
+      <ol>
+        <li><b>Detect the stealth <em>patch</em>, not the flag.</b> Stealth libs reset
+          <code>navigator.webdriver=false</code> but leave fingerprints:
+          <code>Function.prototype.toString</code> tampering, inconsistent
+          <code>navigator.permissions</code>, missing <code>chrome.runtime</code>,
+          plugin/mimeType inconsistencies. Collect these in <code>collector.js</code> and score them.</li>
+        <li><b>Headless detection.</b> WebGL renderer = SwiftShader/llvmpipe, absent AudioContext,
+          screen/orientation &amp; permissions quirks.</li>
+        <li><b>Device fingerprint + internal consistency</b> (UA ⇄ platform ⇄ JS-engine ⇄ TLS).</li>
+      </ol>
+    </div>
+
+    <div class="tier">
+      <h3>🥉 Tier 3 — broaden behavior &amp; make the scorer a model</h3>
+      <ol>
+        <li><b>Score the whole session</b>, not just the final gesture: scroll dynamics, focus/blur,
+          dwell/hesitation, keystroke timing, multiple gestures.</li>
+        <li><b>Replace the linear heuristic with a trained model</b> on the labeled human/bot traces
+          the arena collects — the README's stated end state. Feature extraction stays; only
+          <code>score()</code> changes. Every accepted bypass becomes a training row.</li>
+        <li><b>Harden the token</b>: signed, single-use, short-TTL, bound to action + hostname.</li>
+      </ol>
+    </div>
+
+    <div class="tier">
+      <h3>🏅 Tier 4 — proof-of-personhood <span class="pri">hardest</span></h3>
+      <ol>
+        <li><b>Private Access Tokens / Privacy Pass attestation.</b> Let genuine devices vouch via
+          OS/hardware attestation — the only tier even a perfect stealth browser can't fake.</li>
+      </ol>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <b>What not to invest more in.</b> <span class="muted">More mouse-shape math has diminishing
+      returns — the behavioral layer is already near the realistic ceiling for single-gesture
+      analysis, and a replayed real human trace beats any amount of it. Spend the effort below
+      JavaScript (Tier 1) and on breadth (Tier 3).</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Sources</h2>
+    <ul class="src">
+      <li><a href="https://datadome.co/anti-detect-tools/recaptha-score/">reCAPTCHA v3 score &amp; signals — DataDome</a></li>
+      <li><a href="https://blog.captchaai.com/recaptcha-cookie-session-requirements">reCAPTCHA cookie/session requirements — CaptchaAI</a></li>
+      <li><a href="https://friendlycaptcha.com/insights/recaptcha-v2-vs-v3/">reCAPTCHA v2 vs v3 — FriendlyCaptcha</a></li>
+      <li><a href="https://developers.cloudflare.com/turnstile/">Cloudflare Turnstile — official overview</a></li>
+      <li><a href="https://blog.peak.fo/cloudflare-turnstile-how-it-works/">How Turnstile works — peak.fo</a></li>
+      <li><a href="https://scrappey.com/qa/anti-bot/what-is-cloudflare-turnstile">Turnstile &amp; Private Access Tokens — Scrappey</a></li>
+      <li><a href="https://www.hcaptcha.com/bot-detection">hCaptcha Enterprise / bot detection</a></li>
+      <li><a href="https://kameleo.io/blog/how-modern-captchas-work-in-2025">How modern CAPTCHAs work — Kameleo</a></li>
+      <li><a href="https://scrapfly.io/web-scraping-tools/ja3-fingerprint">TLS fingerprinting JA3/JA4 — Scrapfly</a></li>
+    </ul>
+  </section>
+
+</div>
+<footer>
+  Companion to the <a href="index.html">arena dashboard</a> · full write-up in
+  <code>docs/captcha-benchmark-and-roadmap.md</code> ·
+  <a href="https://github.com/wassim6/human-click-arena">github.com/wassim6/human-click-arena</a>
+</footer>
+</body>
+</html>
